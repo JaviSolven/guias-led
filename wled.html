@@ -1,0 +1,767 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><title>Tira WLED de prueba</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Una sola columna de lectura, como un manual de montaje: fases en orden, pasos con casilla,
+   y los nombres de bornas con el aspecto de la serigrafía del controlador. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --fg:#1a1f27; --muted:#596273; --line:#d9dee6;
+  --accent:#0d7480; --accent-soft:#e2f2f3; --warn-bg:#fff4dc; --warn-fg:#7a4b00; --warn-line:#f0d08c;
+  --ok:#1f7a45; --chip-bg:#eef1f5;
+  --wire-red:#d33a2c; --wire-green:#2b9a52; --wire-white:#f7f7f7; --wire-edge:#8a929e;
+  --pcb:#22303a; --pcb-fg:#e9eef2;
+  --f-display:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1317; --surface:#171c22; --fg:#e5e9ee; --muted:#9aa4b3; --line:#2a313b;
+  --accent:#43b8c2; --accent-soft:#16343a; --warn-bg:#2e2410; --warn-fg:#f3cd7c; --warn-line:#5c4718;
+  --ok:#5fc98a; --chip-bg:#222a33; --wire-white:#eceff2; --wire-edge:#69717d; --pcb:#2b3a45; --pcb-fg:#e9eef2;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1317; --surface:#171c22; --fg:#e5e9ee; --muted:#9aa4b3; --line:#2a313b;
+  --accent:#43b8c2; --accent-soft:#16343a; --warn-bg:#2e2410; --warn-fg:#f3cd7c; --warn-line:#5c4718;
+  --ok:#5fc98a; --chip-bg:#222a33; --wire-white:#eceff2; --wire-edge:#69717d; --pcb:#2b3a45; --pcb-fg:#e9eef2;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:760px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:2rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.35rem;font-weight:700}
+h3{font-size:1.05rem;font-weight:500}
+p{margin:0}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header.top{padding-block:32px 20px;display:grid;gap:10px}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lead{color:var(--muted);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.pill{font-size:.8rem;padding:3px 10px;border-radius:999px;background:var(--chip-bg);color:var(--muted)}
+.t{font-family:var(--f-mono);font-weight:600;font-size:.82em;letter-spacing:.03em;padding:1px 6px;border-radius:4px;
+  background:var(--pcb);color:var(--pcb-fg);white-space:nowrap}
+.w{display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-1px;margin-right:4px;border:1px solid var(--wire-edge)}
+.w.red{background:var(--wire-red)} .w.green{background:var(--wire-green)} .w.white{background:var(--wire-white)}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--chip-bg);padding:1px 5px;border-radius:4px;white-space:nowrap}
+
+nav.toc{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.9rem}
+nav.toc a{text-decoration:none;color:var(--fg)}
+nav.toc a span{color:var(--muted);font-variant-numeric:tabular-nums}
+
+section.fase{padding-block:28px;border-bottom:1px solid var(--line);display:grid;gap:14px}
+.fase-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.fase-head .num{font-family:var(--f-mono);color:var(--accent);font-size:.85rem;font-weight:600;letter-spacing:.05em}
+.progress{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.progress.done{color:var(--ok);font-weight:600}
+
+ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:paso}
+ol.steps>li{counter-increment:paso}
+ol.steps label{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+ol.steps label>span{min-width:0}
+ol.steps label>span::before{content:counter(paso) ". ";font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+ol.steps input[type=checkbox]{width:18px;height:18px;margin:3px 0 0;accent-color:var(--accent)}
+ol.steps li.hecho label{background:transparent}
+ol.steps li.hecho label>span{color:var(--muted)}
+.sub{display:block;margin-top:6px;color:var(--muted);font-size:.92rem}
+
+.aviso{background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-line);border-radius:8px;padding:12px 14px;font-size:.95rem}
+.nota{border-left:3px solid var(--accent);padding:4px 0 4px 12px;color:var(--muted);font-size:.95rem}
+
+.datos{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px}
+.datos .fila{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.datos .fila{grid-template-columns:1fr}}
+.campo{display:grid;gap:4px;min-width:0}
+.campo label{font-size:.85rem;font-weight:600}
+.campo select,.campo input{font:inherit;font-size:.95rem;padding:8px 10px;border-radius:6px;border:1px solid var(--line);
+  background:var(--bg);color:var(--fg);width:100%}
+.resultado{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:.95rem}
+.resultado strong{font-family:var(--f-mono);font-size:1.15rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.pista{font-size:.88rem;color:var(--muted);align-self:end;min-width:0}
+
+.lista{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.tabla{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+
+.diagrama{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
+.diagrama svg{display:block;width:100%;min-width:580px;height:auto}
+svg .tx{fill:var(--fg);font-family:var(--f-body);font-size:13px}
+svg .tx-m{fill:var(--muted);font-family:var(--f-body);font-size:12px}
+svg .tx-pcb{fill:var(--pcb-fg);font-family:var(--f-mono);font-size:12px;font-weight:600}
+svg .tx-pcb-dim{fill:var(--pcb-fg);opacity:.45;font-family:var(--f-mono);font-size:12px}
+svg .box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+svg .pcb{fill:var(--pcb)}
+svg .screw{fill:var(--chip-bg);stroke:var(--wire-edge);stroke-width:1}
+svg .strip{fill:#11161b}
+svg .led{fill:#f2f2f2}
+svg .pad{fill:#c98a52}
+svg .cable{fill:none;stroke:var(--muted);stroke-width:4;stroke-linecap:round}
+svg .wr{fill:none;stroke:var(--wire-red);stroke-width:3.5;stroke-linecap:round}
+svg .wg{fill:none;stroke:var(--wire-green);stroke-width:3.5;stroke-linecap:round}
+svg .ww-edge{fill:none;stroke:var(--wire-edge);stroke-width:5.5;stroke-linecap:round}
+svg .ww{fill:none;stroke:var(--wire-white);stroke-width:3.5;stroke-linecap:round}
+svg .jst{fill:var(--fg)}
+svg .arrow{fill:#f2f2f2}
+
+footer{padding-block:24px;color:var(--muted);font-size:.9rem;display:grid;gap:12px}
+button.reset{font:inherit;font-size:.9rem;padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;justify-self:start}
+button.reset.confirmar{border-color:var(--wire-red);color:var(--wire-red)}
+@media (prefers-reduced-motion:no-preference){ol.steps label{transition:background .15s}}
+
+/* Selector de controlador: la guía enseña solo lo del controlador elegido */
+.ctrl-elige{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:4px}
+.ctrl-elige .lbl{font-size:.85rem;font-weight:600}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg label{display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:.9rem;cursor:pointer;border-right:1px solid var(--line)}
+.seg label:last-child{border-right:0}
+.seg input{accent-color:var(--accent);margin:0}
+.seg label:has(input:checked){background:var(--accent-soft);font-weight:600}
+.bloque{display:grid;gap:14px}
+html:not([data-ctrl]) [data-ctrl="sp803e"],
+html[data-ctrl="gledopto"] [data-ctrl="sp803e"],
+html[data-ctrl="sp803e"] [data-ctrl="gledopto"]{display:none !important}
+svg .lv-red{fill:#c9473c} svg .lv-blue{fill:#2f80d1} svg .lv-grey{fill:#a7adb5}
+svg .lv-dark{fill:#39424d;stroke:#6b7480;stroke-width:1}
+svg .port{fill:var(--chip-bg);stroke:var(--wire-edge);stroke-width:1}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">GLEDOPTO GL-C-616WL o SP803E · BTF WS2812 ECO 5 m · WLED · Hyperion</div>
+  <h1>Tira WLED de prueba</h1>
+  <p class="lead">Montaje del controlador (GLEDOPTO GL-C-616WL o BTF SP803E) con la tira de 5 m, puesta en marcha de WLED y alta en Hyperion como segundo aparato de luces, junto a tu tira Robobloq. La Robobloq, su puente y su servicio no se tocan.</p>
+  <div class="meta"><span class="pill">Unos 45 minutos</span><span class="pill">Sin soldar</span><span class="pill">Las casillas se guardan en este navegador</span></div>
+  <div class="ctrl-elige" role="radiogroup" aria-label="Tu controlador">
+    <span class="lbl">Tu controlador:</span>
+    <span class="seg">
+      <label><input type="radio" name="ctrl" value="gledopto"> GLEDOPTO GL-C-616WL</label>
+      <label><input type="radio" name="ctrl" value="sp803e"> SP803E</label>
+    </span>
+    <span class="pista">La guía enseña solo los pasos del que elijas.</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Fases">
+  <ol>
+    <li><a href="#mesa">Tu mesa</a></li>
+    <li><a href="#cual">¿Cuál?</a></li>
+    <li><a href="#f0">0 Material <span data-prog="f0"></span></a></li>
+    <li><a href="#f1">1 Cables <span data-prog="f1"></span></a></li>
+    <li><a href="#f2">2 Corriente <span data-prog="f2"></span></a></li>
+    <li><a href="#f3">3 Red <span data-prog="f3"></span></a></li>
+    <li><a href="#f4">4 WLED <span data-prog="f4"></span></a></li>
+    <li><a href="#f5">5 Hyperion <span data-prog="f5"></span></a></li>
+    <li><a href="#f6">6 Prueba <span data-prog="f6"></span></a></li>
+    <li><a href="#f7">7 Igualar <span data-prog="f7"></span></a></li>
+    <li><a href="#fallos">Fallos</a></li>
+    <li><a href="#usb">Plan B</a></li>
+    <li><a href="#cortar">Cortar la tira</a></li>
+    <li><a href="#tele">Pasarla a la tele</a></li>
+  </ol>
+</nav>
+
+<!-- TU MESA -->
+<section class="fase" id="mesa">
+  <div class="fase-head"><h2>Cómo queda en tu mesa</h2></div>
+  <p>Las dos tiras van en el mismo PC y en el mismo Hyperion, cada una en su propia «instancia», y copian la misma pantalla. Entre las dos rodean el monitor por los cuatro lados.</p>
+  <div class="tabla">
+    <table>
+      <tr><th></th><th>Tira Robobloq (la que ya tienes)</th><th>Tira WLED (la nueva)</th></tr>
+      <tr><td>Dónde va</td><td>Lados y arriba del monitor</td><td>Abajo: borde de atrás de la mesa, mirando a la pared</td></tr>
+      <tr><td>Cómo le llegan los colores</td><td>Por USB a la torre, a través del puente</td><td><span data-ctrl="gledopto">Por el cable de red (o por wifi), directamente desde Hyperion</span><span data-ctrl="sp803e">Por wifi, directamente desde Hyperion</span></td></tr>
+      <tr><td>Corriente</td><td>El mismo USB de la torre</td><td><span data-ctrl="gledopto">Cargador de móvil por USB-C, enchufado a la pared (no al USB de la torre)</span><span data-ctrl="sp803e">Cargador de móvil, o un USB libre de la torre</span></td></tr>
+      <tr><td>En Hyperion</td><td>La instancia que ya tienes. <b>No se toca.</b></td><td>Una instancia nueva, «Tira WLED» (fase 5)</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- CUÁL -->
+<section class="fase" id="cual">
+  <div class="fase-head"><h2>¿Con cuál te quedas?</h2></div>
+  <p>Tienes los dos controladores y la guía vale para cualquiera de ellos: elige arriba el que vayas a montar. Si aún no lo tienes claro, esto es lo que cambia:</p>
+  <div class="tabla">
+    <table>
+      <tr><th></th><th>GLEDOPTO GL-C-616WL</th><th>SP803E</th></tr>
+      <tr><td>Cómo le llegan los colores</td><td><b>Cable de red</b>, o wifi si no llega el cable</td><td>Solo wifi (de 2,4 GHz)</td></tr>
+      <tr><td>Corriente en la mesa</td><td>Cargador de pared por USB-C. No vale el USB de la torre</td><td>Cargador por la clavija redonda, o un USB de la torre con menos brillo</td></tr>
+      <tr><td>Salidas para tiras</td><td><b>Dos</b>: la tira y otra más (por ejemplo, unas torres) con un solo aparato</td><td>Una</td></tr>
+      <tr><td>Bornas</td><td>De palanca, sin herramientas</td><td>De tornillo, con destornillador</td></tr>
+      <tr><td>En la tele (5 V y 8 A)</td><td>Por las bornas INPUT <span class="t">V+</span> <span class="t">V-</span></td><td>Por las bornas <span class="t">VCC</span> <span class="t">GND</span> de la izquierda (la clavija aguanta 4 A)</td></tr>
+      <tr><td>Precio en Amazon cuando lo miramos</td><td>Unos 35 €</td><td>Unos 33 €</td></tr>
+    </table>
+  </div>
+  <div class="nota">Con Hyperion lo que más importa es que los colores lleguen <b>sin tirones</b>. Si puedes llevar un cable de red hasta donde va la tira (la mesa ahora, la tele después), el GLEDOPTO es la opción más segura. Si no hay forma de llevar cable, los dos van igual por wifi, y decide lo demás: dos salidas y palancas en el GLEDOPTO, o el USB de la torre en el SP803E.</div>
+
+  <h3>Probar los dos con la misma tira</h3>
+  <ol class="lista">
+    <li>Monta primero uno, siguiendo la guía hasta la fase 6 (prueba).</li>
+    <li>Pruébalo un buen rato con un vídeo o un juego. Mira si la tira de abajo va a la vez que la Robobloq, si da tirones y si se desconecta.</li>
+    <li>Para pasar al otro: desenchufa la corriente y pasa los tres cables de la tira al otro controlador, según su tabla de la fase 1.</li>
+    <li>Elige arriba el otro controlador y haz sus fases 2, 3 y 4 (corriente, red y WLED).</li>
+    <li>En Hyperion no hace falta crear nada: en la instancia <b>Tira WLED</b>, en <b>Controlador LED</b>, cambia solo la IP por la del otro y guarda.</li>
+    <li>Repite la misma prueba y compara.</li>
+  </ol>
+  <p class="nota">El que no te quedes, déjalo como venía antes de devolverlo: en WLED, <b>Config → Security &amp; Updates</b>, marca <b>Factory reset</b> y pulsa Save. Mira en tu pedido de Amazon hasta qué día puedes devolverlo.</p>
+</section>
+
+<!-- TUS DATOS -->
+<section class="fase" id="datos">
+  <div class="fase-head"><h2>Tus datos</h2></div>
+  <div class="datos">
+    <div class="fila">
+      <div class="campo">
+        <label for="fuente">Con qué le das corriente</label>
+        <select id="fuente">
+          <option value="1.2" data-ctrl="sp803e">Adaptador de 5 V y 1,2 A (clavija directa)</option>
+          <option value="1">Cargador USB de 5 V y 1 A</option>
+          <option value="2" selected>Cargador USB de 5 V y 2 A</option>
+          <option value="2.4">Cargador USB de 5 V y 2,4 A</option>
+          <option value="3">Cargador USB de 5 V y 3 A</option>
+          <option value="pc2" data-ctrl="sp803e">Un USB de la torre (puerto normal, USB 2.0)</option>
+          <option value="pc3" data-ctrl="sp803e">Un USB de la torre (puerto azul, USB 3.0)</option>
+          <option value="f8">Fuente de 5 V y 8 A por las bornas (la de la tele)</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="ip">IP del controlador (la apuntas en la fase 3)</label>
+        <input id="ip" type="text" inputmode="decimal" placeholder="por ejemplo 192.168.1.57" autocomplete="off">
+      </div>
+    </div>
+    <div class="fila">
+      <div class="campo">
+        <label for="leds">LEDs que vas a encender (de 150)</label>
+        <input id="leds" type="number" min="1" max="150" step="1" value="30">
+      </div>
+      <p class="pista">30 para probar en la mesa (el primer metro). Unos 16 debajo del monitor de 24". En la tele, los metros que pegues × 30 (unos 105 en una de 55").</p>
+    </div>
+    <div class="resultado">Límite de corriente para WLED: <strong class="abl">1500</strong> mA <span class="nota-abl pista"></span></div>
+    <div class="resultado">Length en WLED y LEDs en Hyperion: <strong class="leds">30</strong></div>
+    <div class="resultado">Dirección de WLED: <span class="ip-link"></span></div>
+  </div>
+</section>
+
+<!-- FASE 0 -->
+<section class="fase" id="f0">
+  <div class="fase-head"><div><div class="num">FASE 0</div><h2>Comprueba que lo tienes todo</h2></div><span class="progress" data-prog="f0"></span></div>
+  <ol class="steps" data-fase="f0">
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g0-1"><span>Controlador <b>GLEDOPTO GL-C-616WL</b> (en la tapa pone «Elite 2D-EXMU»). En la caja viene un <b>fusible de repuesto de 5 A</b>: guárdalo, ahora no hace falta.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f0-1"><span>Controlador <b>BTF-LIGHTING SP803E</b> («WLED-ESP32»).</span></label></li>
+    <li><label><input type="checkbox" id="f0-2"><span>Tira <b>BTF ECO de 5 m</b> (150 LEDs, 30 por metro). En la caja viene un <b>cable suelto con un conector y tres cables pelados</b> (<span class="w red"></span>rojo, <span class="w green"></span>verde y <span class="w white"></span>blanco): es el que vas a usar.
+      <span class="sub">Si viene algún otro cable con conector, guárdalo para la tele. Si no encuentras el cable suelto, mira «Si algo falla».</span></span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g0-3"><span>Un <b>cable USB-C</b> (vale el de cargar un móvil Android) y un <b>cargador de móvil</b> de 5 V que se enchufe a la pared, mejor de 2 A o más.
+      <span class="sub">El fabricante pide cargador de pared, <b>no el USB de la torre</b>. Los cables KUOQIY y tu adaptador de 1,2 A no sirven aquí: este controlador no tiene clavija redonda.</span></span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g0-4"><span>Un <b>cable de red</b> (Ethernet, el de conectores RJ-45) que llegue desde el router hasta la mesa.
+      <span class="sub">Si el router está lejos y el PC ya usa su cable, un switch pequeño junto a la mesa reparte la conexión entre los dos. Si no puedes llevar cable, también funciona por wifi (fase 3).</span></span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f0-3"><span>Cable <b>USB a clavija redonda</b> (KUOQIY) y un <b>cargador de móvil</b> de 5 V. O tu adaptador de 5 V y 1,2 A, que entra directo.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f0-4"><span><b>Destornillador plano pequeño</b> para las bornas.</span></label></li>
+    <li><label><input type="checkbox" id="f0-5"><span>El <b>nombre y la contraseña de tu wifi</b> de casa, y el <b>móvil</b> a mano.</span></label></li>
+    <li><label><input type="checkbox" id="f0-6"><span>El <b>PC de la mesa</b> encendido, con Hyperion y la tira <b>Robobloq</b> funcionando como siempre: lados y arriba del monitor, por USB a la torre, con su puente.</span></label></li>
+  </ol>
+</section>
+
+<!-- FASE 1 -->
+<section class="fase" id="f1">
+  <div class="fase-head"><div><div class="num">FASE 1</div><h2>Conecta los cables, sin corriente</h2></div><span class="progress" data-prog="f1"></span></div>
+  <div class="aviso"><b>Todo lo de esta fase, con el cargador desenchufado.</b> Conectar o tocar las bornas con corriente puede quemar el controlador si dos cables se tocan.</div>
+
+  <div class="diagrama" data-ctrl="gledopto" role="img" aria-label="Esquema: el cargador de pared va por un cable USB-C al lado izquierdo del controlador, y el router por un cable de red al puerto Ethernet, también a la izquierda. En el lado derecho, OUTPUT, solo se usan las tres primeras bornas: V+ con el cable rojo, IO16 con el verde y GND con el blanco, que van al conector del principio de la tira.">
+    <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+      <!-- cargador -->
+      <rect class="box" x="8" y="150" width="84" height="52" rx="8"/>
+      <text class="tx" x="50" y="173" text-anchor="middle">Cargador</text>
+      <text class="tx-m" x="50" y="191" text-anchor="middle">de pared, 5 V</text>
+      <path class="cable" d="M92 176 C 126 176, 130 199, 166 199"/>
+      <text class="tx-m" x="100" y="166">USB-C</text>
+      <!-- router -->
+      <rect class="box" x="8" y="230" width="84" height="52" rx="8"/>
+      <text class="tx" x="50" y="253" text-anchor="middle">Router</text>
+      <text class="tx-m" x="50" y="271" text-anchor="middle">o switch</text>
+      <path class="cable" d="M92 256 C 128 256, 130 239, 166 239"/>
+      <text class="tx-m" x="100" y="290">cable de red</text>
+      <!-- controlador -->
+      <rect class="pcb" x="170" y="30" width="236" height="240" rx="10"/>
+      <text class="tx-pcb" x="290" y="60" text-anchor="middle">GLEDOPTO</text>
+      <text class="tx-pcb-dim" x="290" y="78" text-anchor="middle">GL-C-616WL</text>
+      <!-- entrada INPUT: sin usar -->
+      <text class="tx-pcb-dim" x="180" y="104">INPUT</text>
+      <rect class="lv-red" x="176" y="112" width="30" height="14" rx="2"/>
+      <text class="tx-pcb-dim" x="212" y="123">V+</text>
+      <rect class="lv-dark" x="176" y="130" width="30" height="14" rx="2"/>
+      <text class="tx-pcb-dim" x="212" y="141">V-</text>
+      <text class="tx-pcb-dim" x="180" y="166">sin usar</text>
+      <!-- USB-C y Ethernet -->
+      <rect class="port" x="164" y="190" width="14" height="18" rx="4"/>
+      <text class="tx-pcb" x="186" y="203">USB-C</text>
+      <rect class="port" x="164" y="228" width="20" height="22" rx="2"/>
+      <text class="tx-pcb" x="190" y="243">Ethernet</text>
+      <!-- botón -->
+      <text class="tx-pcb-dim" x="300" y="222" text-anchor="middle">Function</text>
+      <circle class="screw" cx="300" cy="240" r="9"/>
+      <!-- salidas OUTPUT -->
+      <text class="tx-pcb-dim" x="398" y="50" text-anchor="end">OUTPUT</text>
+      <text class="tx-pcb" x="384" y="70" text-anchor="end">V+</text><rect class="lv-red" x="392" y="58" width="32" height="16" rx="2"/>
+      <text class="tx-pcb" x="384" y="94" text-anchor="end">IO16</text><rect class="lv-blue" x="392" y="82" width="32" height="16" rx="2"/>
+      <text class="tx-pcb" x="384" y="118" text-anchor="end">GND</text><rect class="lv-dark" x="392" y="106" width="32" height="16" rx="2"/>
+      <text class="tx-pcb-dim" x="384" y="142" text-anchor="end">V+</text><rect class="lv-red" x="392" y="130" width="32" height="16" rx="2"/>
+      <text class="tx-pcb-dim" x="384" y="166" text-anchor="end">IO2</text><rect class="lv-blue" x="392" y="154" width="32" height="16" rx="2"/>
+      <text class="tx-pcb-dim" x="384" y="190" text-anchor="end">GND</text><rect class="lv-dark" x="392" y="178" width="32" height="16" rx="2"/>
+      <text class="tx-pcb-dim" x="384" y="214" text-anchor="end">IO13</text><rect class="lv-grey" x="392" y="202" width="32" height="16" rx="2"/>
+      <text class="tx-pcb-dim" x="384" y="238" text-anchor="end">GND</text><rect class="lv-dark" x="392" y="226" width="32" height="16" rx="2"/>
+      <!-- cables -->
+      <path class="wr" d="M424 66 C 460 66, 456 136, 486 136"/>
+      <path class="wg" d="M424 90 C 462 90, 458 146, 486 146"/>
+      <path class="ww-edge" d="M424 114 C 464 114, 460 156, 486 156"/>
+      <path class="ww" d="M424 114 C 464 114, 460 156, 486 156"/>
+      <!-- conector JST -->
+      <rect class="jst" x="486" y="128" width="20" height="36" rx="3"/>
+      <text class="tx-m" x="496" y="186" text-anchor="middle">conector</text>
+      <!-- tira -->
+      <rect class="strip" x="506" y="122" width="128" height="48" rx="3"/>
+      <text class="tx-m" x="570" y="112" text-anchor="middle">principio de la tira</text>
+      <rect class="pad" x="512" y="128" width="12" height="7" rx="2"/>
+      <rect class="pad" x="512" y="142" width="12" height="7" rx="2"/>
+      <rect class="pad" x="512" y="156" width="12" height="7" rx="2"/>
+      <rect class="led" x="536" y="135" width="20" height="20" rx="2"/>
+      <path class="arrow" d="M562 141 l10 4 l-10 4 z"/>
+      <rect class="led" x="582" y="135" width="20" height="20" rx="2"/>
+      <path class="arrow" d="M608 141 l10 4 l-10 4 z"/>
+      <text class="tx-m" x="572" y="207" text-anchor="middle">+5V · Din · GND</text>
+      <text class="tx-m" x="572" y="224" text-anchor="middle">flechas: hacia el final</text>
+    </svg>
+  </div>
+
+  <div class="tabla" data-ctrl="gledopto">
+    <table>
+      <tr><th>Cable</th><th>En la tira pone</th><th>Borna del controlador (OUTPUT, lado derecho)</th></tr>
+      <tr><td><span class="w red"></span>Rojo</td><td>+5V</td><td><span class="t">V+</span> la primera de arriba, palanca roja</td></tr>
+      <tr><td><span class="w green"></span>Verde</td><td>Din (datos)</td><td><span class="t">IO16</span> la segunda, palanca azul</td></tr>
+      <tr><td><span class="w white"></span>Blanco</td><td>GND</td><td><span class="t">GND</span> la tercera, palanca negra</td></tr>
+    </table>
+  </div>
+
+  <div class="diagrama" data-ctrl="sp803e" role="img" aria-label="Esquema: el cargador va por el cable USB a la clavija redonda del lado izquierdo del controlador. En el lado derecho, el cable blanco va a GND, el verde a DATA y el rojo a VCC, y sus otros extremos van al conector del principio de la tira, marcado +5V, Din y GND.">
+    <svg viewBox="0 0 640 270" xmlns="http://www.w3.org/2000/svg">
+      <!-- cargador -->
+      <rect class="box" x="8" y="150" width="78" height="56" rx="8"/>
+      <text class="tx" x="47" y="174" text-anchor="middle">Cargador</text>
+      <text class="tx-m" x="47" y="192" text-anchor="middle">5 V USB</text>
+      <path class="cable" d="M86 178 C 120 178, 120 220, 150 220 L 186 220"/>
+      <text class="tx-m" x="20" y="256">cable USB a clavija</text>
+      <!-- controlador -->
+      <rect class="pcb" x="186" y="30" width="230" height="220" rx="10"/>
+      <text class="tx-pcb" x="300" y="56" text-anchor="middle">WLED-ESP32</text>
+      <text class="tx-pcb-dim" x="300" y="74" text-anchor="middle">SP803E</text>
+      <!-- lado izquierdo -->
+      <circle class="screw" cx="202" cy="112" r="8"/><text class="tx-pcb-dim" x="216" y="116">GND</text>
+      <circle class="screw" cx="202" cy="138" r="8"/><text class="tx-pcb-dim" x="216" y="142">VCC</text>
+      <text class="tx-pcb-dim" x="200" y="168">sin usar</text>
+      <rect x="186" y="210" width="22" height="20" rx="3" fill="var(--chip-bg)" stroke="var(--wire-edge)"/>
+      <text class="tx-pcb" x="216" y="224">5~24V DC</text>
+      <!-- lado derecho -->
+      <text class="tx-pcb" x="358" y="100" text-anchor="end">GND</text><circle class="screw" cx="400" cy="96" r="8"/>
+      <text class="tx-pcb-dim" x="358" y="124" text-anchor="end">PWM3</text><circle class="screw" cx="400" cy="120" r="8"/>
+      <text class="tx-pcb-dim" x="358" y="148" text-anchor="end">PWM2</text><circle class="screw" cx="400" cy="144" r="8"/>
+      <text class="tx-pcb-dim" x="358" y="172" text-anchor="end">PWM1</text><circle class="screw" cx="400" cy="168" r="8"/>
+      <text class="tx-pcb" x="358" y="196" text-anchor="end">DATA</text><circle class="screw" cx="400" cy="192" r="8"/>
+      <text class="tx-pcb" x="358" y="220" text-anchor="end">VCC</text><circle class="screw" cx="400" cy="216" r="8"/>
+      <!-- cables -->
+      <path class="ww-edge" d="M408 96 C 450 96, 450 136, 486 136"/>
+      <path class="ww" d="M408 96 C 450 96, 450 136, 486 136"/>
+      <path class="wg" d="M408 192 C 450 192, 450 146, 486 146"/>
+      <path class="wr" d="M408 216 C 456 216, 456 156, 486 156"/>
+      <!-- conector JST -->
+      <rect class="jst" x="486" y="128" width="20" height="36" rx="3"/>
+      <text class="tx-m" x="496" y="186" text-anchor="middle">conector</text>
+      <!-- tira -->
+      <rect class="strip" x="506" y="122" width="128" height="48" rx="3"/>
+      <text class="tx-m" x="570" y="112" text-anchor="middle">principio de la tira</text>
+      <rect class="pad" x="512" y="128" width="12" height="7" rx="2"/>
+      <rect class="pad" x="512" y="142" width="12" height="7" rx="2"/>
+      <rect class="pad" x="512" y="156" width="12" height="7" rx="2"/>
+      <rect class="led" x="536" y="135" width="20" height="20" rx="2"/>
+      <path class="arrow" d="M562 141 l10 4 l-10 4 z"/>
+      <rect class="led" x="582" y="135" width="20" height="20" rx="2"/>
+      <path class="arrow" d="M608 141 l10 4 l-10 4 z"/>
+      <text class="tx-m" x="572" y="190" text-anchor="middle">+5V · Din · GND</text>
+      <text class="tx-m" x="572" y="207" text-anchor="middle">flechas: hacia el final</text>
+    </svg>
+  </div>
+
+  <div class="tabla" data-ctrl="sp803e">
+    <table>
+      <tr><th>Cable</th><th>En la tira pone</th><th>Borna del controlador (lado derecho)</th></tr>
+      <tr><td><span class="w white"></span>Blanco</td><td>GND</td><td><span class="t">GND</span> la de arriba del todo</td></tr>
+      <tr><td><span class="w green"></span>Verde</td><td>Din (datos)</td><td><span class="t">DATA</span> la quinta</td></tr>
+      <tr><td><span class="w red"></span>Rojo</td><td>+5V</td><td><span class="t">VCC</span> la de abajo del todo</td></tr>
+    </table>
+  </div>
+
+  <ol class="steps" data-fase="f1">
+    <li><label><input type="checkbox" id="f1-1"><span>Desenrolla la tira y busca el <b>principio</b>: es el extremo del que salen las flechitas impresas, y junto a él pone <b>Din</b>. El conector de ese extremo es el que va al controlador.</span></label></li>
+    <li><label><input type="checkbox" id="f1-2"><span>Enchufa el cable de un solo conector (rojo, verde y blanco) al conector del principio. Solo entra en una posición: si no entra suave, dale la vuelta, no lo fuerces.
+      <span class="sub">Si no encaja en ninguna posición, estás en el final de la tira. Ve al otro extremo.</span></span></label></li>
+    <li><label><input type="checkbox" id="f1-3"><span>Comprueba los colores: sigue cada cable hasta la tira y mira lo que pone impreso junto a cada contacto. Lo normal es <span class="w red"></span>rojo = +5V, <span class="w green"></span>verde = Din y <span class="w white"></span>blanco = GND. <b>Si no coincide, manda lo impreso, no el color.</b></span></label></li>
+    <li><label><input type="checkbox" id="f1-7"><span>En el principio y en el final de la tira salen además <b>dos cables sueltos, rojo y blanco</b>, sin conector. Sirven para dar corriente extra en la tele y ahora no se usan. <b>Tapa sus puntas con cinta aislante</b>, cada una por separado, para que no se toquen entre sí ni con nada metálico.</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g1-1"><span>Mira las <b>puntas peladas</b> de los tres cables y retuerce los hilos de cada una para que no se abran. Lo ideal son unos <b>10 mm pelados</b>: es la medida que marca el controlador junto a las bornas («10mm»).
+      <span class="sub">Si son más cortas, prueba igual: lo que cuenta es que el cable no se salga al tirar. Si no aguanta, pela un poco más con unas tijeras o un pelacables, sin cortar los hilos de dentro.</span></span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g1-2"><span>En el lado <b>OUTPUT</b> (el derecho, el de las ocho palancas de colores) usa solo las <b>tres de arriba</b>. En cada una: <b>levanta la palanca</b>, mete el cable pelado hasta el fondo y <b>bájala del todo</b>. Rojo en <span class="t">V+</span> (palanca roja), verde en <span class="t">IO16</span> (azul) y blanco en <span class="t">GND</span> (negra).
+      <span class="sub">Las palancas son duras, sobre todo al bajarlas: es normal. Empuja con el dedo, sin herramientas.</span></span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f1-4"><span>En el <b>lado derecho</b> del controlador (el de seis bornas) afloja los tornillos de <span class="t">GND</span>, <span class="t">DATA</span> y <span class="t">VCC</span>. Mete cada cable según la tabla y aprieta. Las bornas <span class="t">PWM1</span>, <span class="t">PWM2</span> y <span class="t">PWM3</span> no se usan.</span></label></li>
+    <li><label><input type="checkbox" id="f1-5"><span>Tira suavemente de cada cable: no debe salirse. Mira que ningún hilo suelto toque la borna de al lado.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f1-6"><span>Las bornas <span class="t">GND</span> y <span class="t">VCC</span> del <b>lado izquierdo</b> se quedan vacías: la corriente entrará por la clavija redonda.</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g1-3"><span>Lo demás se queda <b>vacío</b>: la segunda salida (<span class="t">V+</span> <span class="t">IO2</span> <span class="t">GND</span>), <span class="t">IO13</span> con su <span class="t">GND</span>, y la entrada <b>INPUT</b> <span class="t">V+</span> <span class="t">V-</span> de arriba a la izquierda, que es para la fuente grande de la tele. La corriente entrará por el USB-C.</span></label></li>
+  </ol>
+</section>
+
+<!-- FASE 2 -->
+<section class="fase" id="f2">
+  <div class="fase-head"><div><div class="num">FASE 2</div><h2>Dale corriente</h2></div><span class="progress" data-prog="f2"></span></div>
+  <ol class="steps" data-fase="f2">
+    <li><label><input type="checkbox" id="f2-1"><span>Desenrolla al menos el primer metro y déjalo estirado sobre la mesa, sin pegarlo y lejos de objetos metálicos. El resto puede quedarse en el carrete: esos LEDs van a estar apagados.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f2-2"><span>Enchufa la clavija redonda en el lado izquierdo del controlador, donde pone <span class="t">5~24V DC</span>. Con tu adaptador de 1,2 A, enchúfalo ahí directamente.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f2-3"><span>Conecta el USB al cargador y el cargador a la pared. Si en <a href="#datos">Tus datos</a> elegiste un USB de la torre, enchúfalo a un puerto libre de la torre, igual que la Robobloq.</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g2-1"><span>Enchufa el cable <b>USB-C</b> en el lado izquierdo del controlador, donde pone «3A Max», y el otro extremo al cargador.</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g2-2"><span>Enchufa el cargador <b>a la pared</b>. No al USB de la torre: el propio controlador lo pone en su etiqueta («USB wall adapter, not PC USB»).</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g2-3"><span>Pulsa una vez el botón <b>Function</b> (el redondo que hay junto a esa palabra, en la tapa): la tira se enciende o se apaga. Déjala encendida. Puede salir algún color o efecto: es la configuración de fábrica, y en la fase 4 la ajustas.
+      <span class="sub">Si al pulsar no pasa nada en la tira, desenchufa, revisa la fase 1 y mira «Si algo falla». Si se calienta algo o huele a quemado, desenchufa.</span></span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f2-4"><span>Se enciende la lucecita <span class="t">STAT</span> del controlador. Puede que la tira se encienda en algún color o efecto: es la configuración de fábrica, y en la fase 4 la ajustas.
+      <span class="sub">Si se calienta algo o huele a quemado, desenchufa y revisa la fase 1. Si no se enciende nada, mira «Si algo falla».</span></span></label></li>
+  </ol>
+</section>
+
+<!-- FASE 3 -->
+<section class="fase" id="f3">
+  <div class="fase-head"><div><div class="num">FASE 3</div><h2><span data-ctrl="gledopto">Conéctalo a la red</span><span data-ctrl="sp803e">Mete el controlador en tu wifi</span></h2></div><span class="progress" data-prog="f3"></span></div>
+  <p class="nota" data-ctrl="gledopto">Con el cable de red, el controlador no depende del wifi: es lo más estable para Hyperion. El Ethernet viene configurado de fábrica, así que normalmente basta con enchufarlo.</p>
+  <p class="nota" data-ctrl="sp803e">El controlador solo usa wifi de <b>2,4 GHz</b>. Si tu router tiene una red de 2,4 GHz y otra de 5 GHz, elige la de 2,4. Si las dos se llaman igual, normalmente funciona sin hacer nada.</p>
+  <ol class="steps" data-fase="f3">
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g3-1"><span>Con el controlador encendido, enchufa el <b>cable de red</b> en su puerto <b>Ethernet</b> (lado izquierdo, debajo del USB-C) y el otro extremo en un puerto libre del <b>router</b> o del switch.</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g3-2"><span>Espera un minuto: el router le da una dirección (IP) él solo.</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g3-3"><span>Averigua esa IP, de cualquiera de estas formas:
+      <span class="sub">· Con la app <b>WLED</b> del móvil (gratis; el fabricante nombra «WLED Native»), con el móvil en el wifi de casa: lo encuentra sola.<br>· En la lista de dispositivos conectados de tu router.<br>· En Hyperion, que suele encontrarlo solo en la fase 5.</span></span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g3-4"><span>Escribe la IP arriba, en <a href="#datos">Tus datos</a>. Desde el PC, abre esa dirección en el navegador: debe salir la página de WLED.
+      <span class="sub">Si no aparece por ningún lado, el controlador no está usando el cable. En el móvil, busca la red <b>WLED-AP</b> (contraseña <code>wled1234</code>) y abre <code>4.3.2.1</code>. Entra en <b>Config → WiFi Setup</b>, baja del todo y en <b>Ethernet Type</b> elige <b>Gledopto Series with Ethernet</b>. Pulsa <b>Save &amp; Connect</b> y vuelve al paso 2.</span></span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f3-1"><span>En el móvil, abre los ajustes de wifi y busca una red llamada <b>WLED-AP</b>. Conéctate con la contraseña <code>wled1234</code>.
+      <span class="sub">Si no aparece, espera un minuto. Si sigue sin salir, busca otra red que empiece por «WLED» o «BTF»: algunos vienen con otro nombre de fábrica.</span></span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f3-2"><span>Normalmente se abre sola la página de WLED. Si no, abre el navegador del móvil y escribe <code>4.3.2.1</code>.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f3-3"><span>Pulsa <b>WIFI SETTINGS</b>. Escribe el nombre de tu wifi y su contraseña en los dos primeros campos. Lo demás déjalo como está.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f3-4"><span>Pulsa <b>Save &amp; Connect</b>. El controlador se reinicia, la red WLED-AP desaparece y el móvil vuelve a tu wifi.</span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f3-5"><span>Averigua la IP que le ha dado tu router, de cualquiera de estas formas:
+      <span class="sub">· Con la app <b>WLED</b> del móvil (gratis), que lo encuentra sola.<br>· En la lista de dispositivos conectados de tu router.<br>· En Hyperion, que suele encontrarlo solo en la fase 5.</span></span></label></li>
+    <li data-ctrl="sp803e"><label><input type="checkbox" id="f3-6"><span>Escribe la IP arriba, en <a href="#datos">Tus datos</a>. Desde el PC, abre esa dirección en el navegador: debe salir la página de WLED.</span></label></li>
+  </ol>
+  <div class="bloque" data-ctrl="gledopto">
+    <h3>Si no puedes llevar el cable: por wifi</h3>
+    <ol class="lista">
+      <li>En el móvil, conéctate a la red <b>WLED-AP</b> con la contraseña <code>wled1234</code>.</li>
+      <li>Se abre sola la página de WLED. Si no, escribe <code>4.3.2.1</code> en el navegador del móvil.</li>
+      <li>Pulsa <b>WIFI SETTINGS</b>, escribe el nombre y la contraseña de tu wifi (la de <b>2,4 GHz</b>) y pulsa <b>Save &amp; Connect</b>.</li>
+      <li>Busca la IP como en el paso 3 y apúntala en <a href="#datos">Tus datos</a>.</li>
+    </ol>
+    <p class="nota">Por wifi va igual que cualquier WLED. Si un día va a tirones, la solución es el cable.</p>
+  </div>
+</section>
+
+<!-- FASE 4 -->
+<section class="fase" id="f4">
+  <div class="fase-head"><div><div class="num">FASE 4</div><h2>Dile a WLED qué tira tiene</h2></div><span class="progress" data-prog="f4"></span></div>
+  <p class="nota">Desde el PC, en <span class="ip-link"></span>. Los menús de WLED están en inglés.</p>
+  <ol class="steps" data-fase="f4">
+    <li><label><input type="checkbox" id="f4-1"><span>Pulsa <b>Config</b> y luego <b>LED Preferences</b>.</span></label></li>
+    <li><label><input type="checkbox" id="f4-2"><span>En la salida de LEDs pon:
+      <span class="sub">Type: <b>WS281x</b> · Color Order: <b>GRB</b> · Length: <b class="leds">30</b> · GPIO: <b>16</b></span></span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g4-1"><span>Si salen <b>dos salidas</b> (la segunda con GPIO <b>2</b>), deja solo la primera, la de GPIO 16: quita la segunda con el botón <b>−</b> que hay debajo. La segunda salida es para otra tira, y ahora no hay nada conectado.</span></label></li>
+    <li data-ctrl="gledopto"><label><input type="checkbox" id="g4-2"><span>Más abajo, en <b>Relay GPIO</b> tiene que poner <b>18</b> con <b>Invert</b> marcado. Viene así de fábrica; si no, ponlo. Es el relé que corta la corriente de la tira cuando la apagas.</span></label></li>
+    <li><label><input type="checkbox" id="f4-3"><span>Marca el limitador de brillo automático (<i>automatic brightness limiter</i>) y en la corriente máxima de la fuente (<i>Maximum PSU Current</i>) pon <b><span class="abl">1500</span> mA</b>.</span></label></li>
+    <li><label><input type="checkbox" id="f4-4"><span>Pulsa <b>Save</b>. El controlador se reinicia en unos segundos.</span></label></li>
+    <li><label><input type="checkbox" id="f4-5"><span>En la página principal de WLED, elige rojo, luego verde, azul y blanco en la rueda de color. Se tienen que encender <b>los <span class="leds">30</span> primeros LEDs</b>, cada vez del color que eliges, y el resto quedarse apagado.
+      <span class="sub">Si el rojo sale verde, vuelve al paso 2 y cambia Color Order a RGB. Si se encienden menos de la cuenta, en la pestaña Segments pon Stop a <span class="leds">30</span>.</span></span></label></li>
+    <li><label><input type="checkbox" id="f4-6"><span>Ve a <b>Config → Sync Interfaces</b> y comprueba que está marcado <b>Receive UDP realtime</b>. Viene marcado de fábrica; es lo que deja entrar los colores de Hyperion.</span></label></li>
+    <li><label><input type="checkbox" id="f4-7"><span>Vuelve a la página principal y <b>apaga</b> la tira con el botón de encendido de arriba. Así se quedará apagada cuando Hyperion no la use.</span></label></li>
+  </ol>
+  <p class="nota" data-ctrl="gledopto">Si algún día actualizas WLED (Config → Security &amp; Updates), usa la versión para Ethernet: el fichero termina en <code>_ESP32_Ethernet.bin</code>. Con la versión normal deja de funcionar el cable de red.</p>
+</section>
+
+<!-- FASE 5 -->
+<section class="fase" id="f5">
+  <div class="fase-head"><div><div class="num">FASE 5</div><h2>Añádela a Hyperion</h2></div><span class="progress" data-prog="f5"></span></div>
+  <p class="nota">En el PC, en <code>http://localhost:8090</code>. Los nombres de los menús pueden variar un poco según la versión de Hyperion y el idioma. Si no ves un apartado, sube el nivel de ajustes a <b>Avanzado</b> con el icono de la llave. Si algo no coincide, hazle una foto y lo vemos.</p>
+  <ol class="steps" data-fase="f5">
+    <li><label><input type="checkbox" id="f5-0"><span>Antes de crear nada, comprueba que la <b>Robobloq</b> sigue funcionando y fíjate en cómo se llama su instancia, en el selector de arriba. Es la que maneja los lados y arriba del monitor: en esta fase no se cambia nada de ella.</span></label></li>
+    <li><label><input type="checkbox" id="f5-1"><span>Ve a <b>Configuración → General</b> y busca la gestión de <b>instancias</b> (en inglés, <i>LED Hardware instance management</i>). Crea una nueva llamada <b>Tira WLED</b> y arráncala.
+      <span class="sub">La instancia que ya tienes es la de la Robobloq. No la cambies.</span></span></label></li>
+    <li><label><input type="checkbox" id="f5-2"><span>En la barra de arriba aparece un selector de instancia. Elige <b>Tira WLED</b>. Desde aquí, todo lo que cambies es solo para la tira nueva.</span></label></li>
+    <li><label><input type="checkbox" id="f5-3"><span><b>Hardware LED → Controlador LED</b>: tipo <b>wled</b> (en el grupo de red). En la dirección, elige el controlador de la lista o escribe la IP de <a href="#datos">Tus datos</a>. Si te pide el número de LEDs, pon <b class="leds">30</b>.</span></label></li>
+    <li><label><input type="checkbox" id="f5-4"><span>En esa misma página, marca <b>Restaurar estado original</b> (<i>Restore original state</i>). Así WLED vuelve a quedarse apagada cuando Hyperion para. Guarda.</span></label></li>
+    <li><label><input type="checkbox" id="f5-5"><span><b>Hardware LED → Distribución de LEDs</b> (disposición clásica): arriba <b>0</b>, izquierda <b>0</b>, derecha <b>0</b>, abajo <b class="leds">30</b>. Guarda. En el dibujo deben salir los LEDs solo en el lado de abajo.</span></label></li>
+    <li><label><input type="checkbox" id="f5-6"><span>Con la instancia <b>Tira WLED</b> elegida, comprueba que tiene activada la <b>captura de pantalla</b> (DDA), igual que la primera, y que en el panel de control remoto, en Componentes, están encendidos la captura y el <b>dispositivo LED</b>.</span></label></li>
+  </ol>
+</section>
+
+<!-- FASE 6 -->
+<section class="fase" id="f6">
+  <div class="fase-head"><div><div class="num">FASE 6</div><h2>Prueba</h2></div><span class="progress" data-prog="f6"></span></div>
+  <ol class="steps" data-fase="f6">
+    <li><label><input type="checkbox" id="f6-1"><span>Pon el trozo que se enciende debajo de la pantalla, sin pegarlo: en el borde de atrás de la mesa, mirando a la pared. El resto de la tira, enrollado detrás.</span></label></li>
+    <li><label><input type="checkbox" id="f6-2"><span>Abre la <a href="hyperion.html" target="_blank" rel="noopener">pantalla de prueba de la guía de Hyperion</a> a pantalla completa, en el modo de colores. La tira de abajo debe copiar los colores de la parte de abajo de la pantalla, y la Robobloq los de los lados y arriba.</span></label></li>
+    <li><label><input type="checkbox" id="f6-3"><span>Si los colores van al revés (lo de la izquierda de la pantalla sale a la derecha de la tira), vuelve a <b>Distribución de LEDs</b> de la instancia Tira WLED y marca <b>Invertir dirección</b>.</span></label></li>
+    <li><label><input type="checkbox" id="f6-4"><span>Usa el modo de la vuelta, con el punto de luz que recorre el borde de la pantalla. Al pasar de la Robobloq a la tira de abajo, el punto debe seguir su camino sin saltos.</span></label></li>
+    <li><label><input type="checkbox" id="f6-5"><span>Pon un vídeo o un juego a pantalla completa unos minutos.</span></label></li>
+    <li><label><input type="checkbox" id="f6-6"><span>Cierra Hyperion o apaga el PC: la tira WLED debe apagarse sola.</span></label></li>
+  </ol>
+</section>
+
+<!-- FASE 7 -->
+<section class="fase" id="f7">
+  <div class="fase-head"><div><div class="num">FASE 7</div><h2>Iguala las dos tiras</h2></div><span class="progress" data-prog="f7"></span></div>
+  <p class="nota">La tira WLED brillará más que la Robobloq, porque la Robobloq va limitada por el USB. Todo esto se hace con la instancia <b>Tira WLED</b> elegida arriba.</p>
+  <ol class="steps" data-fase="f7">
+    <li><label><input type="checkbox" id="f7-1"><span>En el procesamiento de imagen de la instancia, baja el <b>brillo</b> poco a poco hasta que el blanco de las dos tiras se parezca.</span></label></li>
+    <li><label><input type="checkbox" id="f7-2"><span>Si un color se ve distinto en las dos tiras (por ejemplo, el blanco más azulado), ajusta un poco ese canal en la calibración de color de la misma página.</span></label></li>
+    <li><label><input type="checkbox" id="f7-3"><span>Mira el <b>suavizado</b> de la instancia de la Robobloq y pon los mismos valores en la Tira WLED, para que las dos reaccionen al mismo ritmo.</span></label></li>
+  </ol>
+</section>
+
+<!-- FALLOS -->
+<section class="fase" id="fallos">
+  <div class="fase-head"><h2>Si algo falla</h2></div>
+  <div class="tabla">
+    <table>
+      <tr><th>Qué pasa</th><th>Qué hacer</th></tr>
+      <tr data-ctrl="gledopto"><td>No se enciende nada, ni pulsando Function</td><td>Prueba otro cargador y otro cable USB-C, siempre enchufado a la pared. Si tu cargador tiene USB-C en los dos extremos y no va, prueba con uno de salida USB-A (la rectangular) y un cable USB-A a USB-C. Mira que el fusible amarillo de arriba («20») esté bien metido.</td></tr>
+      <tr data-ctrl="gledopto"><td>El controlador está en la red, pero la tira no se enciende</td><td>Que el verde esté en <span class="t">IO16</span> (palanca azul de arriba) y no en <span class="t">IO2</span>. Que las tres palancas estén bajadas y los cables no se salgan al tirar. Que el conector esté en el <b>principio</b> de la tira (flechas). Pulsa Function una vez: puede estar apagada. En WLED: GPIO 16, Length, y Relay GPIO 18 con Invert.</td></tr>
+      <tr data-ctrl="gledopto"><td>Con el cable de red no aparece en la app ni en el router</td><td>Mira que se encienden las lucecitas del puerto del router con ese cable; prueba otro puerto u otro cable. Si sigue sin salir, el controlador no está usando el cable: haz el arreglo del paso 4 de la fase 3 (Ethernet Type).</td></tr>
+      <tr data-ctrl="gledopto"><td>Quieres empezar de cero</td><td>Mantén pulsado <b>Function</b> 10 segundos: el controlador vuelve a la configuración de fábrica y abre la red WLED-AP. Después repite las fases 3 y 4.</td></tr>
+      <tr data-ctrl="sp803e"><td>No se enciende nada, ni la luz STAT</td><td>Prueba otro cargador o enchufe. Comprueba que la clavija entra hasta el fondo. El controlador está protegido contra polaridad invertida: si fuera eso, simplemente no enciende.</td></tr>
+      <tr data-ctrl="sp803e"><td>La luz STAT se enciende, pero la tira no</td><td>Que el verde esté en <span class="t">DATA</span> y no en una PWM. Que el conector esté en el <b>principio</b> de la tira (flechas). Que el blanco esté en <span class="t">GND</span>. En WLED: GPIO 16 y Length.</td></tr>
+      <tr><td>Se enciende algún LED suelto de los que no usas</td><td>Puede pasar al enchufar: esos LEDs no reciben órdenes. No es una avería. Déjalos enrollados y tapados, o corta la tira cuando sepas cuánta necesitas.</td></tr>
+      <tr data-ctrl="sp803e"><td>No viene el cable suelto con conector</td><td>Corta el conector del principio de la tira dejando los cables lo más largos posible. Pela 9–10 mm y atorníllalos igual: +5V a <span class="t">VCC</span>, Din a <span class="t">DATA</span> y GND a <span class="t">GND</span>.</td></tr>
+      <tr data-ctrl="gledopto"><td>No viene el cable suelto con conector</td><td>Corta el conector del principio de la tira dejando los cables lo más largos posible. Pela 10 mm y mételos en las palancas igual: +5V en <span class="t">V+</span>, Din en <span class="t">IO16</span> y GND en <span class="t">GND</span>.</td></tr>
+      <tr><td>Solo se enciende el primer LED, o salen colores al azar</td><td>Revisa que el blanco esté bien sujeto en <span class="t">GND</span>. Comprueba que el tipo es WS281x.</td></tr>
+      <tr><td>Colores cambiados (pides rojo y sale verde)</td><td>WLED → LED Preferences → Color Order: prueba RGB en lugar de GRB.</td></tr>
+      <tr><td>Parpadea o el controlador se reinicia con mucho blanco</td><td>Baja el límite de corriente en WLED, o usa un cargador de más amperios.</td></tr>
+      <tr data-ctrl="gledopto"><td>No aparece la red WLED-AP</td><td>Espera un minuto, desenchufa y vuelve a enchufar. Si sigue sin salir, mantén pulsado el botón <b>Function</b> 10 segundos.</td></tr>
+      <tr data-ctrl="sp803e"><td>No aparece la red WLED-AP</td><td>Espera un minuto, desenchufa y vuelve a enchufar. Si sigue sin salir, mantén pulsado el botón <span class="t">KEY</span> del controlador 10 segundos para reiniciarlo, como indica su manual.</td></tr>
+      <tr><td>WLED va, pero Hyperion no la enciende</td><td>Abre la IP en el navegador del PC: si no carga, la IP no es esa o el PC está en otra red. En WLED, <b>Receive UDP realtime</b> marcado. En Hyperion, la instancia arrancada y el dispositivo LED activado.</td></tr>
+      <tr><td>La tira de abajo va al revés que la pantalla</td><td>Distribución de LEDs de la instancia Tira WLED → <b>Invertir dirección</b>.</td></tr>
+      <tr><td>Se queda encendida al apagar el PC</td><td>Apágala desde WLED y marca <b>Restaurar estado original</b> en Hyperion (fase 5, paso 4).</td></tr>
+      <tr data-ctrl="gledopto"><td>Va con tirones de vez en cuando</td><td>Si lo tienes por wifi, pásalo al cable de red (fase 3). Con cable, revisa el suavizado de Hyperion (fase 7).</td></tr>
+      <tr data-ctrl="sp803e"><td>Va con tirones de vez en cuando</td><td>El wifi llega flojo a esa mesa. Acerca el router o cambia el controlador de sitio. Si no mejora, mira el <a href="#usb">plan B</a>.</td></tr>
+      <tr data-ctrl="sp803e"><td>Con el USB de la torre, la tira se apaga o el controlador se reinicia</td><td>El puerto no da para tanto. Baja el límite de corriente en WLED o usa un cargador de móvil.</td></tr>
+      <tr><td>Un día Hyperion deja de encenderla</td><td>Puede que el router le haya dado otra IP. Búscala como en la fase 3 y ponla en el controlador wled de Hyperion. Para que no cambie, en el router se puede reservar esa IP para el controlador.</td></tr>
+      <tr><td>La Robobloq ha dejado de ir</td><td>Elige la primera instancia arriba y comprueba que sigue arrancada. El puente y su servicio no se han tocado.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- PLAN B USB -->
+<section class="fase" id="usb">
+  <div class="fase-head"><div><div class="num">PLAN B</div><h2>Si el wifi da problemas</h2></div></div>
+  <div class="bloque" data-ctrl="gledopto">
+    <p>Con el GLEDOPTO, el plan B es el <b>cable de red</b> de la fase 3: deja de depender del wifi y Hyperion le manda los colores igual, sin cambiar nada más. Si lo tienes por wifi y va a tirones, conecta el cable.</p>
+    <ul class="lista">
+      <li>Su USB-C también lleva datos (sirve para cargarle programas), pero <b>no lo uses para mandar colores desde el PC</b>: es su entrada de corriente, y el fabricante pide no alimentarlo desde el USB del PC.</li>
+      <li>Si algún día hubiera que reinstalar WLED, se hace por ese USB-C desde <code>install.wled.me</code>, eligiendo la versión con Ethernet. Si llegas ahí, lo vemos juntos.</li>
+    </ul>
+  </div>
+  <div class="bloque" data-ctrl="sp803e">
+  <p class="nota">Solo si con el wifi la tira va a tirones o el controlador se desconecta. Prueba los pasos en este orden.</p>
+
+  <h3>Lo que dice la documentación</h3>
+  <ul class="lista">
+    <li><b>El USB-C del SP803E</b> («UART Download») es, según su manual, para <b>actualizar el programa del controlador</b> y para configuración avanzada. Lleva datos.</li>
+    <li><b>WLED sí acepta colores por USB</b> con el protocolo «Adalight». Está siempre activado, va a 115200 baudios de fábrica y la velocidad se cambia en Config → Sync Interfaces. A esa velocidad da para unos 50–100 LEDs.</li>
+    <li><b>Pero hay un fallo conocido sin arreglar.</b> En el proyecto WLED sigue abierto desde 2024 un aviso: con la versión 0.15, al recibir colores por USB el controlador <b>se cuelga o parpadea</b>, incluso con pocos LEDs. En el foro de WLED, otro usuario lo vio también con Hyperion. Por eso el USB con WLED es solo un experimento, no la solución principal.</li>
+  </ul>
+
+  <h3>1. Primero, mejora el wifi</h3>
+  <ol class="steps" data-fase="usb-wifi">
+    <li><label><input type="checkbox" id="usbw-1"><span>Acerca el controlador al router, o el router a la mesa. Comprueba que está en la red de <b>2,4 GHz</b>.</span></label></li>
+    <li><label><input type="checkbox" id="usbw-2"><span>En WLED, en <b>Config → WiFi Setup</b>, marca <b>Disable WiFi sleep</b> si no lo está, y guarda. Evita que el wifi del controlador «se duerma» entre envíos.</span></label></li>
+    <li><label><input type="checkbox" id="usbw-3"><span>En Hyperion, en el controlador <b>wled</b> de la instancia Tira WLED, si te deja elegir cómo envía los colores (por ejemplo DDP o UDP), prueba con el otro y compara.</span></label></li>
+  </ol>
+
+  <h3>2. Si sigue mal, prueba el USB con WLED (experimento)</h3>
+  <p>Es casi inmediato: no hay que instalar ni preparar nada, son unos <b>5–10 minutos</b>. Con 30 LEDs, cada imagen llega en menos de una centésima de segundo. La Robobloq no se entera de nada y sigue igual.</p>
+  <ol class="steps" data-fase="usb">
+    <li><label><input type="checkbox" id="usb-1"><span>Consigue un cable USB-C <b>que lleve datos</b>: vale el de cargar un móvil Android con USB-C, que casi siempre los lleva. Los cables KUOQIY (USB a clavija redonda) <b>no sirven</b> para esto: solo llevan corriente. Si con tu cable el PC no detecta nada en el paso 3, prueba con otro.</span></label></li>
+    <li><label><input type="checkbox" id="usb-2"><span>Con la tira encendida y funcionando por wifi, conecta el USB-C del controlador, donde pone <span class="t">UART Download</span>, a un USB libre de la torre. <b>Deja también la corriente de la tira</b> como estaba: el USB-C no alimenta la tira, y el controlador está protegido para tener las dos cosas conectadas a la vez.</span></label></li>
+    <li><label><input type="checkbox" id="usb-3"><span>En Windows, abre el <b>Administrador de dispositivos</b> → <b>Puertos (COM y LPT)</b>. Debe aparecer un puerto nuevo, por ejemplo «USB-SERIAL CH340 (COM4)». Apunta el número COM.
+      <span class="sub">Si sale con un triángulo amarillo, a Windows le falta el driver del chip USB del controlador. Hazle una foto y lo vemos.</span></span></label></li>
+    <li><label><input type="checkbox" id="usb-4"><span><b>En WLED no hay que tocar nada:</b> escucha por USB siempre, y 115200 es su velocidad de fábrica. Solo si alguien la hubiera cambiado, compruébala en <b>Config → Sync Interfaces</b> (<i>Baud rate</i>).</span></label></li>
+    <li><label><input type="checkbox" id="usb-5"><span>En Hyperion, instancia <b>Tira WLED</b> → <b>Hardware LED → Controlador LED</b>: cambia <b>wled</b> por <b>adalight</b>. Puerto: el COM que apuntaste. Velocidad: 115200. Protocolo: el Adalight normal (el estándar). LEDs: <b class="leds">30</b>. Guarda.
+      <span class="sub">Al guardar, el controlador puede reiniciarse un segundo: su USB también sirve para cargarle programas. Si se queda apagado, desenchufa y vuelve a enchufar su corriente. Desde ese momento, los colores le llegan por USB en vez de por wifi.</span></span></label></li>
+    <li><label><input type="checkbox" id="usb-6"><span>Déjalo funcionando al menos 10 minutos con un vídeo. <b>Si parpadea, salen colores raros o la página de WLED deja de cargar</b>, es el fallo conocido: desenchufa la corriente del controlador y vuelve a enchufarla.</span></label></li>
+    <li><label><input type="checkbox" id="usb-7"><span><b>Para volver al wifi:</b> en la misma página de Hyperion pon otra vez <b>wled</b> con la IP del controlador y guarda. Puedes dejar el cable USB-C puesto o quitarlo.</span></label></li>
+  </ol>
+
+  <h3>3. Si de verdad quieres USB, dos salidas fiables</h3>
+  <ul class="lista">
+    <li><b>Cambiar el programa del controlador por HyperSerialESP32.</b> Es un programa gratuito hecho justo para mandar colores por USB a alta velocidad (2.000.000 baudios), con comprobación de errores. Hyperion lo maneja con el controlador adalight en modo «HyperSerial». A cambio, el controlador <b>deja de ser WLED</b>: sin app, sin efectos y sin wifi, solo luces de Hyperion por USB. Hay que cargarlo con herramientas de programador y depende del chip USB del controlador. Si llegas aquí, lo preparamos juntos. Siempre se puede volver a WLED desde <code>install.wled.me</code>.</li>
+    <li><b>Usar el GLEDOPTO GL-C-616WL que también tienes</b>, con cable de red. Sigue siendo WLED y se maneja igual en Hyperion, pero sin depender del wifi: elige GLEDOPTO arriba y mira «¿Con cuál te quedas?».</li>
+  </ul>
+
+  <ul class="lista">
+    <li>La Robobloq y el controlador pueden ocupar dos USB de la torre a la vez. El puente de la Robobloq <b>no se confunde con el puerto del controlador</b>: solo busca la Robobloq.</li>
+    <li>Con el mismo cable USB-C puedes <b>actualizar o rescatar WLED</b> (por ejemplo, si un día pierde el wifi) desde la web oficial <code>install.wled.me</code>, con Chrome o Edge.</li>
+  </ul>
+  <p class="nota">Fuentes: <a href="https://kno.wled.ge/interfaces/serial/" target="_blank" rel="noopener">WLED, puerto serie</a> · <a href="https://github.com/wled/WLED/issues/3941" target="_blank" rel="noopener">aviso abierto del cuelgue por USB</a> · <a href="https://wled.discourse.group/t/adalight-over-serial-from-hyperion-not-working/11882" target="_blank" rel="noopener">foro: Adalight desde Hyperion</a> · <a href="https://manuals.plus/asin/B0FB38FDCS" target="_blank" rel="noopener">manual del SP803E</a> · <a href="https://github.com/awawa-dev/HyperSerialESP32" target="_blank" rel="noopener">HyperSerialESP32</a></p>
+  </div>
+</section>
+
+<!-- CORTAR -->
+<section class="fase" id="cortar">
+  <div class="fase-head"><h2>Si cortas la tira</h2></div>
+  <p>La tira se puede cortar y <b>los dos trozos siguen funcionando</b>. Hay que hacerlo bien:</p>
+  <ul class="lista">
+    <li><b>Corta solo por las líneas marcadas</b>, entre dos LEDs, por el centro de los contactos de cobre. Con tijeras normales.</li>
+    <li><b>El trozo del principio</b> (el que tiene el conector y va al controlador) no necesita nada. En WLED pon los LEDs que le quedan (Length).</li>
+    <li><b>El trozo sobrante</b> se queda con el corte en su principio: tres contactos de cobre al aire (+5V, Din, GND). Para usarlo hay que ponerle cables ahí:
+      <ul class="lista">
+        <li><b>Sin soldar:</b> con un conector rápido de pinza para tira de 3 pines y 10 mm de ancho. Se abre, se mete la tira hasta el tope y se cierra. Tienen cable con conector o cables sueltos.</li>
+        <li><b>Soldando:</b> tres cables cortos a los contactos. Es lo más fiable si tienes soldador.</li>
+      </ul>
+    </li>
+    <li>Fíjate en las flechas: el sobrante <b>siempre se conecta por el lado del corte</b>, nunca por su otro extremo. Su otro extremo conserva el conector original de la tira, que sirve para alargarlo con otro trozo.</li>
+  </ul>
+  <p><b>Dónde reutilizar el sobrante:</b></p>
+  <ul class="lista">
+    <li><b>Con el mismo controlador, a continuación del primero.</b> Une el final del primer trozo con el principio del sobrante con un cable de tres hilos (se puede alargar). En WLED pones la suma de LEDs, y en Hyperion cada grupo en su sitio.<span data-ctrl="sp803e"> Así se hacen, por ejemplo, la tele y unas torres con un solo SP803E, que tiene una sola salida de datos.</span></li>
+    <li data-ctrl="gledopto"><b>Con el GLEDOPTO, en su segunda salida.</b> Tiene otra salida igual (<span class="t">V+</span> <span class="t">IO2</span> <span class="t">GND</span>): el sobrante va ahí con sus tres cables, sin empalmar nada. En WLED añades una segunda salida con el botón <b>+</b>, GPIO <b>2</b> y sus LEDs. Hyperion lo ve como una sola tira con la suma de los LEDs, y en Distribución de LEDs pones cada grupo en su sitio.</li>
+    <li><b>Con otro controlador</b>, como tira independiente: otra instancia en Hyperion, igual que en la fase 5.</li>
+  </ul>
+  <div class="aviso">Cortar el sobrante no cambia el consumo: lo que cuenta es el total de LEDs encendidos que cuelgan de una misma fuente. Si juntas trozos, sube el límite de corriente solo si la fuente lo aguanta.</div>
+</section>
+
+<section class="fase" id="tele">
+  <div class="fase-head"><h2>Cuando la pases a la tele</h2></div>
+  <ul class="lista">
+    <li><b>Mide</b> por dónde va a ir pegada la tira detrás de la tele. LEDs = metros × 30. Ponlo en <a href="#datos">Tus datos</a>, y cambia Length en WLED y el número de LEDs en Hyperion.</li>
+    <li><b>Corta lo que sobre del final</b>, nunca del principio (mira «Si cortas la tira»). En cada esquina, dobla la tira en diagonal, a 45°, en el hueco entre dos LEDs. Pruébala encendida antes de pegarla.</li>
+    <li>En el Hyperion del PC conectado a la tele, en <b>Distribución de LEDs</b>, pon cuántos LEDs hay en cada lado (arriba, abajo, izquierda y derecha) y en qué esquina empieza la tira.</li>
+    <li data-ctrl="gledopto"><b>Para todo el brillo</b>, fuente de <b>5 V</b> y 8 A. La corriente entra por las bornas <b>INPUT</b> <span class="t">V+</span> y <span class="t">V-</span> (palancas roja y negra, arriba a la izquierda), no por el USB-C, que da como mucho 3 A. <b>Quita el USB-C</b> cuando uses la fuente: una sola entrada de corriente cada vez. En <a href="#datos">Tus datos</a> elige «Fuente de 5 V y 8 A» y pon en WLED el límite que salga.</li>
+    <li data-ctrl="gledopto"><b>La fuente tiene que ser de 5 V</b>, como la tira. El controlador admite también 12 y 24 V, pero pasa esa misma tensión a la tira, y con 12 o 24 V la quemaría.</li>
+    <li data-ctrl="gledopto">El <b>fusible de 20 A</b> que trae vale también para la tele. El de repuesto de 5 A se quedaría corto con la tira entera a todo brillo.</li>
+    <li data-ctrl="sp803e"><b>Para todo el brillo</b>, fuente de 5 V y 8 A. La corriente entra por las bornas <span class="t">VCC</span> y <span class="t">GND</span> del lado izquierdo, no por la clavija, que aguanta como mucho 4 A. En WLED, sube el límite a unos 6.000 mA.</li>
+    <li>Si en blanco el final de la tira se ve amarillento, lleva también corriente de la fuente a los cables extra del final: rojo al positivo y blanco al negativo.<span data-ctrl="gledopto"> Esa corriente extra no pasa por el relé del controlador: al apagar desde WLED la tira se queda a oscuras igual, solo gasta un poco en reposo.</span></li>
+  </ul>
+</section>
+
+<footer>
+  <button type="button" class="reset" id="reset">Borrar casillas y datos</button>
+</footer>
+</div>
+
+<script>
+(function(){
+  var CLAVE = "guia-wled-prueba-v1";
+  var CTRL_DEFECTO = "gledopto";
+  var CTRLS = {"gledopto":1, "sp803e":1};
+  // Límite de corriente para WLED según la fuente. El GLEDOPTO gasta algo más (Ethernet y relé): 100 mA menos.
+  var ABL = {"sp803e":  {"1.2":1000,"1":800,"2":1500,"2.4":1800,"3":2000,"pc2":400,"pc3":700,"f8":6000},
+             "gledopto":{"1":700,"2":1400,"2.4":1700,"3":1900,"f8":6000}};
+  var NOTA = {"sp803e":  {"3":"Si ni el cable ni el cargador se calientan, puedes subir a 2500.",
+                          "pc2":"Se enciende y se apaga con el PC. Brillo parecido al de la Robobloq.",
+                          "pc3":"Se enciende y se apaga con el PC. Brillo parecido al de la Robobloq.",
+                          "f8":"Solo con la fuente por las bornas: mira «Cuando la pases a la tele»."},
+              "gledopto":{"3":"Si ni el cable ni el cargador se calientan, puedes subir a 2400.",
+                          "f8":"Solo con la fuente por las bornas INPUT y sin el USB-C: mira «Cuando la pases a la tele»."}};
+  var estado = {checks:{}, fuente:"2", ip:"", leds:30, ctrl:CTRL_DEFECTO};
+  try { var g = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (g && typeof g === "object") { estado.checks = g.checks || {}; estado.fuente = g.fuente || "2"; estado.ip = g.ip || ""; estado.leds = g.leds || 30; if (CTRLS[g.ctrl]) estado.ctrl = g.ctrl; } } catch(e) {}
+  function normLeds(v){ v = parseInt(v, 10); return (v >= 1 && v <= 150) ? v : 30; }
+  function guardar(){ try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch(e) {} }
+
+  var selFuente = document.getElementById("fuente");
+  var inIp = document.getElementById("ip");
+  var radios = document.querySelectorAll('input[name="ctrl"]');
+  function aplicarCtrl(){
+    document.documentElement.setAttribute("data-ctrl", estado.ctrl);
+    radios.forEach(function(r){ r.checked = (r.value === estado.ctrl); });
+    Array.prototype.forEach.call(selFuente.options, function(o){
+      var c = o.getAttribute("data-ctrl"), ok = !c || c === estado.ctrl;
+      o.hidden = !ok; o.disabled = !ok;
+    });
+    if (ABL[estado.ctrl][estado.fuente] === undefined) estado.fuente = "2";
+    selFuente.value = estado.fuente;
+  }
+  aplicarCtrl();
+  inIp.value = estado.ip;
+  var inLeds = document.getElementById("leds");
+  estado.leds = normLeds(estado.leds);
+  inLeds.value = estado.leds;
+
+  function ipValida(t){ return /^(\d{1,3}\.){3}\d{1,3}$/.test(t) || /^[a-z0-9-]+(\.[a-z0-9-]+)*$/i.test(t); }
+  function pintarDatos(){
+    var ma = ABL[estado.ctrl][estado.fuente];
+    document.querySelectorAll(".abl").forEach(function(e){ e.textContent = ma; });
+    document.querySelectorAll(".leds").forEach(function(e){ e.textContent = estado.leds; });
+    document.querySelectorAll(".nota-abl").forEach(function(e){ e.textContent = NOTA[estado.ctrl][estado.fuente] || ""; });
+    var ip = (estado.ip || "").trim();
+    document.querySelectorAll(".ip-link").forEach(function(e){
+      e.textContent = "";
+      if (ip && ipValida(ip)) {
+        var a = document.createElement("a"); a.href = "http://" + ip; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = "http://" + ip; e.appendChild(a);
+      } else {
+        var s = document.createElement("code"); s.textContent = "http://(IP del controlador)"; e.appendChild(s);
+      }
+    });
+  }
+  // Solo cuentan los pasos del controlador elegido
+  function visible(el){
+    var p = el.parentElement ? el.parentElement.closest("[data-ctrl]") : null;
+    return !p || p === document.documentElement || p.getAttribute("data-ctrl") === estado.ctrl;
+  }
+  function pintarProgreso(){
+    document.querySelectorAll("ol.steps").forEach(function(ol){
+      var cajas = Array.prototype.filter.call(ol.querySelectorAll("input[type=checkbox]"), visible), n = 0;
+      cajas.forEach(function(c){ if (c.checked) n++; c.closest("li").classList.toggle("hecho", c.checked); });
+      var fase = ol.getAttribute("data-fase"), total = cajas.length;
+      document.querySelectorAll('[data-prog="' + fase + '"]').forEach(function(p){
+        var enToc = p.closest("nav");
+        p.textContent = enToc ? (n === total ? "✓" : n + "/" + total) : (n === total ? "Fase completa" : n + " de " + total + " hechos");
+        p.classList.toggle("done", n === total);
+      });
+    });
+  }
+  document.querySelectorAll("ol.steps input[type=checkbox]").forEach(function(c){
+    c.checked = !!estado.checks[c.id];
+    c.addEventListener("change", function(){ estado.checks[c.id] = c.checked; guardar(); pintarProgreso(); });
+  });
+  radios.forEach(function(r){ r.addEventListener("change", function(){
+    if (!r.checked || !CTRLS[r.value]) return;
+    estado.ctrl = r.value; aplicarCtrl(); guardar(); pintarDatos(); pintarProgreso();
+  }); });
+  selFuente.addEventListener("change", function(){ estado.fuente = selFuente.value; guardar(); pintarDatos(); });
+  inIp.addEventListener("input", function(){ estado.ip = inIp.value.trim(); guardar(); pintarDatos(); });
+  inLeds.addEventListener("input", function(){ var v = parseInt(inLeds.value, 10); if (v >= 1 && v <= 150) { estado.leds = v; guardar(); pintarDatos(); } });
+
+  var btn = document.getElementById("reset"), armado = null;
+  btn.addEventListener("click", function(){
+    if (!armado) {
+      btn.textContent = "Pulsa otra vez para borrarlo todo"; btn.classList.add("confirmar");
+      armado = setTimeout(function(){ armado = null; btn.textContent = "Borrar casillas y datos"; btn.classList.remove("confirmar"); }, 4000);
+      return;
+    }
+    clearTimeout(armado); armado = null;
+    estado = {checks:{}, fuente:"2", ip:"", leds:30, ctrl:CTRL_DEFECTO}; guardar();
+    document.querySelectorAll("ol.steps input[type=checkbox]").forEach(function(c){ c.checked = false; });
+    aplicarCtrl(); inIp.value = ""; inLeds.value = 30;
+    btn.textContent = "Borrado"; btn.classList.remove("confirmar");
+    setTimeout(function(){ btn.textContent = "Borrar casillas y datos"; }, 2000);
+    pintarDatos(); pintarProgreso();
+  });
+
+  pintarDatos(); pintarProgreso();
+})();
+</script>
+</body></html>

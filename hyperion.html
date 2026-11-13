@@ -1,0 +1,1069 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><title>Tira DX Light con Hyperion</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Manual de taller: columna de lectura con índice lateral; acento ámbar de LED, trío RGB como firma. */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --fg: #1c2230;
+  --muted: #5b6475;
+  --line: #dfe3ea;
+  --accent: #b45309;
+  --accent-soft: #fdf1e3;
+  --ok: #157347;
+  --ok-soft: #e6f4ec;
+  --warn: #9a5b00;
+  --warn-soft: #fff6e0;
+  --bad: #b42318;
+  --bad-soft: #fdecea;
+  --code-bg: #eef1f5;
+  --r: #e5484d; --g: #30a46c; --b: #3e63dd;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151b; --panel: #1a1f28; --fg: #e6e9ef; --muted: #9aa3b5; --line: #2b3240;
+    --accent: #f0a04b; --accent-soft: #2e2214; --ok: #4cc38a; --ok-soft: #12291e;
+    --warn: #f5b84a; --warn-soft: #2d2410; --bad: #ff7b72; --bad-soft: #321a19;
+    --code-bg: #232a36; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --panel: #1a1f28; --fg: #e6e9ef; --muted: #9aa3b5; --line: #2b3240;
+  --accent: #f0a04b; --accent-soft: #2e2214; --ok: #4cc38a; --ok-soft: #12291e;
+  --warn: #f5b84a; --warn-soft: #2d2410; --bad: #ff7b72; --bad-soft: #321a19;
+  --code-bg: #232a36; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, kbd, .mono { font-family: var(--font-mono); font-size: 0.9em; }
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; word-break: break-word; }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 0.35em; background: var(--panel); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.45rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+ul, ol { margin: 0; padding-left: 1.3em; display: grid; gap: 0.35em; }
+
+.rgb { display: flex; height: 4px; width: 72px; border-radius: 2px; overflow: hidden; }
+.rgb span { flex: 1; } .rgb span:nth-child(1){background:var(--r)} .rgb span:nth-child(2){background:var(--g)} .rgb span:nth-child(3){background:var(--b)}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+header.top { display: grid; gap: 14px; padding-bottom: 24px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+header.top .lead { color: var(--muted); max-width: 70ch; font-size: 1.05rem; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 0.9rem; }
+
+.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: grid; gap: 14px; max-height: calc(100vh - 32px); overflow: auto; }
+@media (max-width: 900px) { nav.toc { position: static; max-height: none; } }
+.progress { display: grid; gap: 6px; }
+.progress .bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.progress .bar i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+.progress small { color: var(--muted); }
+nav.toc ol { list-style: none; padding: 0; gap: 2px; }
+nav.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--fg); padding: 5px 8px; border-radius: 6px; font-size: 0.93rem; }
+nav.toc a:hover { background: var(--panel); }
+nav.toc a .n { font-family: var(--font-mono); color: var(--muted); font-size: 0.8rem; min-width: 1.6em; }
+nav.toc a.done { color: var(--muted); }
+nav.toc a.done .n { color: var(--ok); }
+nav.toc a.done::after { content: "✓"; margin-left: auto; color: var(--ok); }
+.toc-tools { display: grid; gap: 8px; }
+
+main { display: grid; gap: 28px; min-width: 0; }
+section.fase { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 22px clamp(16px, 3vw, 28px); display: grid; gap: 16px; scroll-margin-top: 16px; min-width: 0; }
+section.fase.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.fase-head { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 4px 14px; align-items: baseline; }
+.fase-head .num { font-family: var(--font-mono); font-weight: 500; color: var(--accent); font-size: 0.95rem; grid-row: span 2; padding-top: 4px; }
+.fase-head .why { color: var(--muted); font-size: 0.95rem; }
+.steps { counter-reset: paso; list-style: none; padding: 0; display: grid; gap: 12px; }
+.steps > li { counter-increment: paso; display: grid; grid-template-columns: 2em minmax(0,1fr); gap: 10px; }
+.steps > li::before { content: counter(paso); font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); border: 1px solid var(--line); border-radius: 50%; width: 1.9em; height: 1.9em; display: grid; place-items: center; }
+.steps > li > div { display: grid; gap: 8px; min-width: 0; }
+
+.box { border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+.box h3 { font-size: 0.95rem; display: flex; gap: 8px; align-items: center; }
+.box.test { background: var(--ok-soft); border-left: 4px solid var(--ok); }
+.box.test h3 { color: var(--ok); }
+.box.warn { background: var(--warn-soft); border-left: 4px solid var(--warn); }
+.box.warn h3 { color: var(--warn); }
+.box.info { background: var(--code-bg); }
+.box.bad { background: var(--bad-soft); border-left: 4px solid var(--bad); }
+.box.bad h3 { color: var(--bad); }
+.tag { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 4px; background: var(--ok); color: var(--panel); }
+.tag.w { background: var(--warn); } .tag.b { background: var(--bad); }
+
+pre.term { background: #0f141c; color: #d7dde8; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.5; padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0; white-space: pre; }
+pre.term .c { color: #7f8aa0; } pre.term .ok { color: #6fdc9c; } pre.term .w { color: #f5c26b; }
+.cmd { display: flex; gap: 8px; align-items: stretch; min-width: 0; }
+.cmd code { flex: 1; display: block; padding: 8px 10px; overflow-x: auto; white-space: nowrap; min-width: 0; }
+button, .btn { font: inherit; font-size: 0.92rem; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 7px 12px; border-radius: 6px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+:root[data-theme="dark"] button.primary { color: #1a1206; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #1a1206; } }
+
+details { border: 1px solid var(--line); border-radius: 8px; padding: 0 14px; background: var(--panel); }
+details[open] { padding-bottom: 12px; }
+summary { cursor: pointer; padding: 10px 0; font-weight: 600; font-size: 0.95rem; }
+details > div { display: grid; gap: 8px; }
+
+.done-row { display: flex; justify-content: flex-end; border-top: 1px dashed var(--line); padding-top: 12px; }
+.done-row label { display: inline-flex; gap: 8px; align-items: center; font-weight: 600; cursor: pointer; }
+.done-row input { width: 20px; height: 20px; accent-color: var(--ok); }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.flow .node { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; background: var(--bg); display: grid; }
+.flow .node b { font-size: 0.95rem; } .flow .node small { color: var(--muted); }
+.flow .arrow { color: var(--muted); font-family: var(--font-mono); }
+
+.datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.datos label { display: grid; gap: 4px; font-size: 0.88rem; color: var(--muted); }
+.datos input, .datos select { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; }
+.resumen { font-family: var(--font-mono); font-size: 0.85rem; }
+
+.mon { display: grid; place-items: center; padding: 8px; }
+.mon svg { width: 100%; max-width: 360px; height: auto; }
+.mon svg text { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+
+/* Pantalla de prueba */
+#prueba { position: fixed; inset: 0; z-index: 50; background: #000; display: grid; }
+#prueba canvas { width: 100%; height: 100%; display: block; }
+#prueba .ctl { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(20,20,20,.88); color: #eee; border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; width: min(520px, calc(100% - 40px)); font-size: 0.9rem; }
+#prueba .ctl .modes { display: flex; flex-wrap: wrap; gap: 6px; }
+#prueba .ctl button { background: #2a2a2a; color: #eee; border-color: #444; }
+#prueba .ctl button.on { background: #f0a04b; color: #111; border-color: #f0a04b; }
+#prueba .ctl.hide { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .progress .bar i { transition: none; } }
+
+/* Papel / PDF */
+.solo-papel { display: none; }
+@page {
+  size: A4; margin: 14mm 13mm 17mm;
+  @bottom-left { content: "Tira DX Light con Hyperion"; font: 8.5pt "IBM Plex Sans", "Segoe UI", sans-serif; color: #5b6475; }
+  @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 8.5pt "IBM Plex Sans", "Segoe UI", sans-serif; color: #5b6475; }
+}
+@media print {
+  :root:not(#_papel) {
+    --bg: #ffffff; --panel: #ffffff; --fg: #1c2230; --muted: #5b6475; --line: #d5dae2;
+    --accent: #b45309; --ok: #157347; --ok-soft: #e9f5ee; --warn: #9a5b00; --warn-soft: #fff6e0;
+    --bad: #b42318; --bad-soft: #fdecea; --code-bg: #eef1f5; color-scheme: light;
+  }
+  body { font-size: 10.5pt; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wrap { max-width: none; padding: 0; }
+  .layout { display: block; }
+  .solo-papel { display: grid; }
+  .solo-pantalla, .progress, .toc-tools, .cmd button, #resumen-datos, #prueba { display: none !important; }
+  header.top { padding-bottom: 12px; margin-bottom: 14px; }
+  nav.toc { position: static; max-height: none; overflow: visible; margin-bottom: 8mm; break-after: page; }
+  nav.toc::before { content: "Índice"; font-weight: 700; font-size: 13pt; }
+  nav.toc ol { display: block; columns: 2; column-gap: 10mm; }
+  nav.toc li { break-inside: avoid; }
+  nav.toc a { padding: 2px 0; }
+  main { display: block; }
+  section.fase { border: none; border-radius: 0; padding: 0 0 5mm; margin-bottom: 6mm; border-bottom: 1px solid var(--line); }
+  section.fase.done { border-color: var(--line); }
+  .fase-head, h2, h3, summary { break-after: avoid; }
+  .box, pre.term, tr, .steps > li, .flow, .mon, .done-row, .datos label { break-inside: avoid; }
+  tr:first-child, tr:nth-child(2) { break-after: avoid; }
+  .box.test { break-inside: auto; }
+  .box h3 { break-after: avoid; }
+  code { white-space: nowrap; word-break: normal; }
+  details { border: none; padding: 0; background: none; }
+  summary { list-style: none; padding: 2px 0 4px; color: var(--bad); }
+  summary::-webkit-details-marker { display: none; }
+  button[data-prueba] { border: none; background: none; padding: 0; font-weight: 600; color: var(--fg); }
+  button[data-prueba]::before { content: "▶ "; color: var(--accent); }
+  pre.term { white-space: pre-wrap; word-break: break-all; font-size: 8pt; }
+  a { color: var(--fg); }
+  .done-row label { font-weight: 600; }
+  .mon svg { max-width: 280px; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="rgb" aria-hidden="true"><span></span><span></span><span></span></div>
+    <h1>Tira DX Light con Hyperion</h1>
+    <p class="lead">Guía completa para dejar de usar el programa DX Light y que la tira LED de tu monitor la mueva Hyperion. Va paso a paso, pensada para alguien que nunca lo ha hecho, con una prueba al final de cada fase para saber que todo va bien antes de seguir.</p>
+    <div class="meta-row">
+      <span>Para: PC con Windows 10 u 11 con la tira enchufada</span>
+      <span>Tiempo: unos 60–90 minutos</span>
+      <span>Hyperion: versión 2.2.1 (abril 2026)</span>
+    </div>
+    <div class="solo-papel box info">
+      <p><b>Versión online</b> (con casillas, recuadro de datos, pantallas de prueba y descarga del paquete): <b class="mono">https://javisolven.github.io/guias-led/hyperion.html</b></p>
+      <p>Donde veas <b>▶</b> delante de un nombre, es una pantalla de prueba: ábrela desde la guía online, en el PC de la tira, con el botón «Abrir pantalla de prueba».</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Índice">
+      <div class="progress">
+        <div class="bar"><i id="barra"></i></div>
+        <small id="progreso-txt">0 de 0 fases hechas</small>
+      </div>
+      <ol id="indice"></ol>
+      <div class="toc-tools">
+        <button type="button" id="abrir-prueba">Abrir pantalla de prueba</button>
+        <button type="button" id="reiniciar">Desmarcar todo</button>
+      </div>
+    </nav>
+
+    <main>
+
+<!-- 0 -->
+<section class="fase" id="f0" data-titulo="Antes de empezar">
+  <div class="fase-head"><span class="num">00</span><h2>Antes de empezar</h2><p class="why">Qué vas a montar, qué necesitas y cuatro palabras que salen en la guía.</p></div>
+
+  <p>Ahora mismo la tira la controla <b>DX Light</b>, el programa del fabricante. Al terminar la controlará <b>Hyperion</b>, un programa gratuito y muy configurable que mira lo que hay en la pantalla y pinta la tira con esos colores. Como Hyperion no sabe hablar con esta tira concreta, en medio va un <b>puente</b>: un programa pequeño hecho para ella que traduce lo que manda Hyperion.</p>
+
+  <div class="flow" aria-label="Esquema">
+    <div class="node"><b>Pantalla</b><small>lo que ves</small></div><span class="arrow">→</span>
+    <div class="node"><b>Hyperion</b><small>calcula los colores</small></div><span class="arrow">→</span>
+    <div class="node"><b>Puente</b><small>robobloq_bridge.py</small></div><span class="arrow">→ USB →</span>
+    <div class="node"><b>Tira LED</b><small>detrás del monitor</small></div>
+  </div>
+
+  <h3>Qué necesitas</h3>
+  <ul>
+    <li>El PC con Windows donde está enchufada la tira, con internet (para descargar Python y Hyperion).</li>
+    <li>Saber dónde está tu monitor y poder mirar detrás (para contar LEDs).</li>
+    <li>Esta guía abierta. Si puedes, ábrela en el móvil o en otra ventana: mientras configuras Hyperion tendrás el navegador ocupado.</li>
+  </ul>
+
+  <h3>Palabras que vas a ver</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Palabra</th><th>Qué significa aquí</th></tr>
+    <tr><td><b>Hyperion</b></td><td>El programa que sustituye a DX Light. Se configura desde el navegador, como una página web.</td></tr>
+    <tr><td><b>Puente</b></td><td>El programa pequeño que recibe los colores de Hyperion y se los manda a la tira por USB. Funciona en una ventana negra.</td></tr>
+    <tr><td><b>.bat</b></td><td>Un fichero que se ejecuta con doble clic y lanza órdenes por ti. El paquete trae varios para que no tengas que escribir nada.</td></tr>
+    <tr><td><b>127.0.0.1</b></td><td>Dirección que significa «este mismo PC». Hyperion la usa para hablar con el puente.</td></tr>
+    <tr><td><b>Puerto 5568</b></td><td>El «número de puerta» por el que Hyperion y el puente se hablan. Tiene que ser el mismo en los dos.</td></tr>
+    <tr><td><b>udpraw</b></td><td>El tipo de salida que elegirás en Hyperion: manda los colores en bruto por red, que es lo que entiende el puente.</td></tr>
+    <tr><td><b>Bandeja del sistema</b></td><td>Los iconos pequeños junto al reloj, abajo a la derecha. A veces escondidos tras la flecha <kbd>^</kbd>.</td></tr>
+  </table></div>
+
+  <div class="box warn">
+    <h3><span class="tag w">Importante</span> Las dos reglas de oro</h3>
+    <ul>
+      <li><b>No desinstales DX Light hasta el final.</b> Si algo no sale, siempre puedes volver a él (fase 15).</li>
+      <li><b>Nunca tengas DX Light y el puente funcionando a la vez.</b> Se pelearían por la tira y verías parpadeos.</li>
+    </ul>
+  </div>
+
+  <div class="box info">
+    <h3>Si una prueba no sale</h3>
+    <p>No sigas a la fase siguiente. Mira el apartado «Si no sale» de esa prueba y, si no lo arregla, la tabla de la fase 16. Si sigues atascado, copia el texto de la ventana negra (o el fichero <code>puente.log</code>) y pásaselo a Claude.</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="fase" id="f1" data-titulo="Apuntar la configuración de DX Light">
+  <div class="fase-head"><span class="num">01</span><h2>Apuntar cómo está configurado DX Light</h2><p class="why">Antes de quitarlo, guarda sus datos: te ayudarán a configurar Hyperion y a volver atrás si hace falta.</p></div>
+  <ol class="steps">
+    <li><div><p>Abre DX Light como siempre.</p></div></li>
+    <li><div><p>Busca en sus ajustes y apunta en el recuadro «Tus datos» de abajo: <b>número de LEDs</b>, <b>tamaño del monitor</b>, <b>posición de instalación</b> (por ejemplo «alrededor», «tres lados»…) y <b>orden de color</b> (RGB, GRB…) si aparece.</p></div></li>
+    <li><div><p>Haz una captura de cada pantalla de ajustes: pulsa <kbd>Windows</kbd>+<kbd>Mayús</kbd>+<kbd>S</kbd>, selecciona la zona y pégala en Paint o en un correo para ti.</p></div></li>
+  </ol>
+
+  <h3 id="tus-datos">Tus datos</h3>
+  <p class="why solo-pantalla" style="color:var(--muted)">Se guardan solo en este navegador. Los irás rellenando en las fases 1, 5 y 6.</p>
+  <p class="why solo-papel" style="color:var(--muted)">Rellénalos a mano aquí (o en la guía online) en las fases 1, 5 y 6.</p>
+  <div class="datos">
+    <label for="d-leds">Nº total de LEDs<input id="d-leds" type="number" min="1" max="254" inputmode="numeric" placeholder="ej. 65"></label>
+    <label for="d-firmware">Firmware de la tira<input id="d-firmware" type="text" placeholder="ej. 1.8.2"></label>
+    <label for="d-monitor">Tamaño del monitor<input id="d-monitor" type="text" placeholder="ej. 27 pulgadas"></label>
+    <label for="d-orden">Orden de color en DX Light<select id="d-orden"><option value="">No lo sé</option><option>RGB</option><option>RBG</option><option>GRB</option><option>GBR</option><option>BRG</option><option>BGR</option></select></label>
+    <label for="d-arriba">LEDs arriba<input id="d-arriba" type="number" min="0" inputmode="numeric" placeholder="0"></label>
+    <label for="d-derecha">LEDs a la derecha<input id="d-derecha" type="number" min="0" inputmode="numeric" placeholder="0"></label>
+    <label for="d-abajo">LEDs abajo<input id="d-abajo" type="number" min="0" inputmode="numeric" placeholder="0"></label>
+    <label for="d-izquierda">LEDs a la izquierda<input id="d-izquierda" type="number" min="0" inputmode="numeric" placeholder="0"></label>
+    <label for="d-inicio">El LED 1 (blanco) está…<select id="d-inicio">
+      <option value="">Aún no lo sé</option>
+      <option value="ai">Abajo, lado izquierdo</option>
+      <option value="ad">Abajo, lado derecho</option>
+      <option value="esi">Esquina arriba-izquierda</option>
+      <option value="esd">Esquina arriba-derecha</option>
+      <option value="eii">Esquina abajo-izquierda</option>
+      <option value="eid">Esquina abajo-derecha</option>
+      <option value="otro">En otro sitio</option>
+    </select></label>
+    <label for="d-sentido">Desde el LED 1, la tira avanza…<select id="d-sentido">
+      <option value="">Aún no lo sé</option>
+      <option value="h">Como las agujas del reloj</option>
+      <option value="a">Al contrario que las agujas del reloj</option>
+    </select></label>
+  </div>
+  <p class="resumen" id="resumen-datos" aria-live="polite"></p>
+  <p style="color:var(--muted);font-size:.88rem">Todo «visto de frente», sentado delante de la pantalla.</p>
+</section>
+
+<!-- 2 -->
+<section class="fase" id="f2" data-titulo="Cerrar DX Light y quitarlo del inicio">
+  <div class="fase-head"><span class="num">02</span><h2>Cerrar DX Light y quitarlo del inicio</h2><p class="why">No se desinstala todavía: solo se para y se evita que arranque solo.</p></div>
+  <ol class="steps">
+    <li><div><p>Cierra la ventana de DX Light. Normalmente <b>sigue funcionando escondido</b> en la bandeja del sistema.</p></div></li>
+    <li><div><p>Mira los iconos junto al reloj (pulsa la flecha <kbd>^</kbd> si están ocultos). Haz <b>clic derecho</b> en el icono de DX Light y elige <b>Salir</b> o <b>Quit</b>.</p></div></li>
+    <li><div><p>Abre el Administrador de tareas con <kbd>Ctrl</kbd>+<kbd>Mayús</kbd>+<kbd>Esc</kbd>.</p></div></li>
+    <li><div><p>En la pestaña <b>Procesos</b>, comprueba que no aparece «DX Light». Si aparece, clic derecho → <b>Finalizar tarea</b>.</p></div></li>
+    <li><div><p>Ve a la pestaña <b>Inicio</b> (en Windows 11, <b>Aplicaciones de arranque</b>). Busca «DX Light», clic derecho → <b>Deshabilitar</b>.</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 1</span> DX Light está parado</h3>
+    <p>En Procesos no aparece DX Light y en Inicio pone «Deshabilitado». La tira puede quedarse con el último color o pasar a sus propios efectos: las dos cosas son normales.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="fase" id="f3" data-titulo="Instalar Python">
+  <div class="fase-head"><span class="num">03</span><h2>Instalar Python</h2><p class="why">El puente está escrito en Python. Es gratuito y solo hay que instalarlo una vez.</p></div>
+  <ol class="steps">
+    <li><div><p>Entra en <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org/downloads</a> y pulsa el botón amarillo <b>Download Python 3.x.x</b>.</p></div></li>
+    <li><div><p>Abre el fichero descargado.</p></div></li>
+    <li><div>
+      <p>En la primera pantalla, <b>antes de nada</b>, marca abajo la casilla <b>«Add python.exe to PATH»</b>. Deja marcada también la de «py launcher» si aparece.</p>
+      <div class="box warn"><h3><span class="tag w">Ojo</span> Esta casilla es lo que más falla</h3><p>Si no la marcas, los .bat dirán que no encuentran Python. Si te pasa, vuelve a abrir el instalador, elige «Modify» y márcala.</p></div>
+    </div></li>
+    <li><div><p>Pulsa <b>Install Now</b>, acepta si Windows pide permiso y espera. Al final pulsa <b>Close</b>.</p></div></li>
+    <li><div><p>Para comprobarlo: pulsa <kbd>Windows</kbd>+<kbd>R</kbd>, escribe <code>cmd</code> y pulsa Intro. En la ventana negra escribe esto y pulsa Intro:</p>
+      <div class="cmd"><code>py --version</code><button type="button" data-copy="py --version">Copiar</button></div></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 2</span> Python responde</h3>
+    <pre class="term">C:\Users\tu_usuario&gt; py --version
+<span class="ok">Python 3.13.1</span></pre>
+    <p>Sale «Python 3» y un número; el número exacto da igual. Cierra la ventana negra.</p>
+    <details><summary>Si no sale</summary><div>
+      <p><b>«"py" no se reconoce como un comando…»</b>: Python no se instaló bien o falta la casilla del paso 3. Vuelve a ejecutar el instalador, elige «Modify», marca «py launcher» y «Add Python to environment variables», y termina. Cierra y abre de nuevo la ventana negra.</p>
+      <p><b>Se abre la Microsoft Store</b>: has escrito <code>python</code> en lugar de <code>py</code>. Usa <code>py</code>.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="fase" id="f4" data-titulo="Descargar el paquete del puente">
+  <div class="fase-head"><span class="num">04</span><h2>Descargar y colocar el paquete del puente</h2><p class="why">Una carpeta con el puente y los .bat que vas a usar.</p></div>
+  <ol class="steps">
+    <li><div>
+      <p>Descarga el paquete:</p>
+      <div id="descarga-online" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <button type="button" class="primary" id="btn-zip">Descargar hyperion-robobloq.zip</button>
+        <small id="zip-estado" style="color:var(--muted)"></small>
+      </div>
+      <p id="descarga-local" hidden>Ya tienes el paquete: estás leyendo esta guía desde dentro de la carpeta <code>hyperion-robobloq</code>. Salta al paso 4.</p>
+      <p id="descarga-pdf" hidden>En el PC de la tira, abre la guía online <b class="mono">https://javisolven.github.io/guias-led/hyperion.html</b> y, en esta misma fase, pulsa el botón <b>«Descargar hyperion-robobloq.zip»</b>. Se guarda en tu carpeta <b>Descargas</b>.</p>
+      <p id="descarga-fallo" hidden style="color:var(--muted)">Si el botón no funciona, descarga el zip desde la <a href="index.html">portada</a>.</p>
+    </div></li>
+    <li><div><p>Ve a la carpeta <b>Descargas</b>, haz <b>clic derecho</b> en <code>hyperion-robobloq.zip</code> → <b>Propiedades</b>. Si abajo aparece una casilla <b>«Desbloquear»</b>, márcala y pulsa <b>Aceptar</b>. Así Windows no te pondrá avisos de seguridad con cada .bat.</p></div></li>
+    <li><div><p>Clic derecho en el zip → <b>Extraer todo…</b> → en «Seleccionar un destino» escribe <code>C:\</code> → <b>Extraer</b>. Debe quedar la carpeta <code>C:\hyperion-robobloq</code>.</p></div></li>
+    <li><div><p>Abre <code>C:\hyperion-robobloq</code> y comprueba que están estos ficheros:</p>
+      <div class="table-wrap"><table>
+        <tr><th>Fichero</th><th>Para qué sirve</th></tr>
+        <tr><td><code>robobloq_bridge.py</code></td><td>El puente. No hace falta abrirlo.</td></tr>
+        <tr><td><code>probar_tira.bat</code></td><td>Comprueba que se ve la tira y hace una prueba de colores.</td></tr>
+        <tr><td><code>contar_leds.bat</code></td><td>Pinta la tira por bloques de 10 para contar los LEDs de cada lado.</td></tr>
+        <tr><td><code>iniciar_puente.bat</code></td><td>Arranca el puente con la ventana a la vista (para las pruebas).</td></tr>
+        <tr><td><code>zonas_34.bat</code>, <code>zonas_60.bat</code></td><td>Cambian al momento entre modo normal (34 zonas) y modo detalle (60) (fase 13).</td></tr>
+        <tr><td><code>accesos_escritorio.bat</code></td><td>Pone esos dos modos como accesos directos en el escritorio.</td></tr>
+        <tr><td><code>instalar_servicio.bat</code></td><td>Instala el puente como servicio de Windows: arranca solo, sin ventanas (fase 14).</td></tr>
+        <tr><td><code>desinstalar_servicio.bat</code></td><td>Quita ese servicio.</td></tr>
+        <tr><td><code>servicio_windows.cs</code></td><td>Código del lanzador del servicio. No hace falta abrirlo.</td></tr>
+        <tr><td><code>arranque_automatico.bat</code>, <code>quitar_arranque.bat</code></td><td>Alternativa al servicio si no tienes permisos de administrador.</td></tr>
+        <tr><td><code>abrir_firewall.bat</code></td><td>Solo si algún día Hyperion está en otro PC. Hoy no lo necesitas.</td></tr>
+        <tr><td><code>LEEME.md</code>, <code>GUIA.html</code></td><td>Documentación (esta guía, para leer sin internet).</td></tr>
+        <tr><td><code>Guia en internet</code></td><td>Acceso directo a esta guía en internet (con tus casillas marcadas).</td></tr>
+      </table></div>
+      <p style="color:var(--muted);font-size:.9rem">Si Windows oculta las extensiones verás «probar_tira» con un icono de engranaje en lugar de «probar_tira.bat». Es lo mismo.</p>
+    </div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 3</span> La carpeta está en su sitio</h3>
+    <p>Existe <code>C:\hyperion-robobloq</code> y dentro están los ficheros de la tabla (sin otra carpeta intermedia del mismo nombre).</p>
+    <details><summary>Si no sale</summary><div>
+      <p><b>Ha quedado <code>C:\hyperion-robobloq\hyperion-robobloq\…</code></b>: entra en la carpeta de dentro, selecciona todo (<kbd>Ctrl</kbd>+<kbd>E</kbd>), córtalo (<kbd>Ctrl</kbd>+<kbd>X</kbd>) y pégalo en la de fuera. Borra la carpeta vacía.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="fase" id="f5" data-titulo="Probar la tira sin Hyperion">
+  <div class="fase-head"><span class="num">05</span><h2>Probar la tira con el puente, sin Hyperion</h2><p class="why">Primero comprobamos que el puente habla con la tira. Si esto va, lo demás es configuración.</p></div>
+  <ol class="steps">
+    <li><div><p>Asegúrate de que la tira está enchufada al USB y de que DX Light está cerrado (fase 2).</p></div></li>
+    <li><div><p>En <code>C:\hyperion-robobloq</code> haz <b>doble clic en <code>probar_tira.bat</code></b>. Se abre una ventana negra.</p>
+      <p style="color:var(--muted);font-size:.9rem">Si sale «Windows protegió su PC» o «¿Desea ejecutar este archivo?», pulsa <b>Más información → Ejecutar de todas formas</b> o <b>Ejecutar</b>. Es tu propio fichero.</p></div></li>
+    <li><div><p>Primero busca la tira y enseña sus datos. Debe salir algo así:</p>
+<pre class="term">=== Buscando la tira ===
+<span class="ok">HID (Windows)  \\?\hid#vid_1a86&amp;pid_fe07#…</span>
+
+=== Datos de la tira ===
+10:21:05 INFO Conectado por HID (Windows): \\?\hid#vid_1a86&amp;pid_fe07#…
+<span class="ok">10:21:05 INFO Tira: id 000501, 65 LEDs, 27", firmware 1.8.2, uuid …</span>
+10:21:05 INFO Usando 65 LEDs, modo sincronía (SC)</pre>
+      <p>Apunta en «Tus datos» (fase 1) el <b>número de LEDs</b> y el <b>firmware</b>. Los números de tu tira serán otros.</p></div></li>
+    <li><div><p>Pulsa una tecla y mira la tira: se pondrá <b>roja, verde, azul y blanca</b>; luego un <b>punto rojo</b> la recorre desde el LED 1; después <b>mitad roja, mitad azul</b>, y se apaga.</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 4</span> La tira obedece al puente</h3>
+    <ul>
+      <li>Ves los cuatro colores enteros.</li>
+      <li>El blanco se ve como un <b>gris claro</b>, no muy fuerte. Es normal: el puente limita el consumo igual que DX Light para no forzar el USB.</li>
+      <li>El punto rojo recorre toda la tira.</li>
+    </ul>
+    <details><summary>Si no sale</summary><div>
+      <p><b>«No se ha encontrado ninguna tira»</b>: comprueba el cable USB, prueba otro puerto USB y confirma que DX Light no está abierto. Abre el Administrador de dispositivos (clic derecho en Inicio) y mira si aparece algo con <code>VID_1A86&amp;PID_FE07</code> (en «Dispositivos de interfaz humana», propiedades → Detalles → Id. de hardware).</p>
+      <p><b>Aparece como puerto COM con <code>PID_FE0C</code></b> (en «Puertos (COM y LPT)»): es la variante serie. Abre <code>cmd</code>, escribe <code>py -m pip install pyserial</code>, pulsa Intro y repite.</p>
+      <p><b>Encuentra la tira pero no cambia de color</b>: abre <code>cmd</code>, escribe <code>py -m pip install hidapi</code>, pulsa Intro y repite. El puente usará esa librería en su lugar.</p>
+      <p><b>«La tira no responde a la petición de información»</b> y se para: escribe en <code>cmd</code> (dentro de la carpeta) <code>py robobloq_bridge.py --prueba --leds 60</code>, poniendo el número de LEDs que apuntaste de DX Light.</p>
+      <p><b>La ventana se cierra sola al momento</b>: Python no está bien instalado. Vuelve a la fase 3.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="fase" id="f6" data-titulo="Contar los LEDs de cada lado">
+  <div class="fase-head"><span class="num">06</span><h2>Contar los LEDs de cada lado y ver dónde empieza la tira</h2><p class="why">Hyperion necesita saber cuántos LEDs hay en cada lado y por dónde empieza la tira.</p></div>
+  <ol class="steps">
+    <li><div><p>Doble clic en <b><code>contar_leds.bat</code></b>. La tira se queda 3 minutos pintada así:</p>
+      <div class="table-wrap"><table>
+        <tr><th>LEDs</th><th>Color</th></tr>
+        <tr><td>1</td><td><b>BLANCO</b>: es el primero</td></tr>
+        <tr><td>2 a 10</td><td>rojo</td></tr>
+        <tr><td>11 a 20</td><td>verde</td></tr>
+        <tr><td>21 a 30</td><td>azul</td></tr>
+        <tr><td>31 a 40</td><td>amarillo</td></tr>
+        <tr><td>41 a 50</td><td>morado</td></tr>
+        <tr><td>51 a 60</td><td>celeste</td></tr>
+        <tr><td>61 a 70…</td><td>vuelve a empezar: rojo, verde…</td></tr>
+      </table></div>
+      <p>La ventana negra te recuerda esta tabla con los números de tu tira.</p></div></li>
+    <li><div><p>Mira detrás del monitor (con una linterna del móvil si hace falta). Localiza el <b>LED blanco</b>: ahí empieza la tira.</p></div></li>
+    <li><div><p>Siguiendo los colores, cuenta cuántos LEDs hay en cada lado. Los bloques de 10 te ahorran contar uno a uno: por ejemplo, si el lado de arriba va desde la mitad del bloque verde hasta el final del amarillo, son 5 + 10 + 10 = 25.</p></div></li>
+    <li><div>
+      <div class="box warn"><h3><span class="tag w">Ojo</span> Apunta todo visto de frente</h3>
+      <p>Por detrás los lados se invierten: lo que ves a tu izquierda mirando por detrás es la <b>derecha</b> de la pantalla vista de frente. Apunta en «Tus datos» como si estuvieras sentado delante: LEDs arriba, derecha, abajo, izquierda, dónde está el LED 1 y hacia dónde avanza (como las agujas del reloj o al revés, visto de frente).</p></div>
+      <div class="mon" aria-hidden="true">
+        <svg viewBox="0 0 360 230" role="img">
+          <rect x="40" y="20" width="280" height="160" rx="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="2"></rect>
+          <rect x="54" y="34" width="252" height="132" rx="3" fill="currentColor" fill-opacity=".06"></rect>
+          <text x="180" y="105" text-anchor="middle">pantalla vista de frente</text>
+          <text x="180" y="14" text-anchor="middle">ARRIBA</text>
+          <text x="180" y="198" text-anchor="middle">ABAJO</text>
+          <text x="18" y="104" text-anchor="middle" transform="rotate(-90 18 104)">IZQUIERDA</text>
+          <text x="342" y="104" text-anchor="middle" transform="rotate(90 342 104)">DERECHA</text>
+          <path d="M70 26 H290" stroke="var(--accent)" stroke-width="2" marker-end="url(#fl)" fill="none"></path>
+          <defs><marker id="fl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="var(--accent)"></path></marker></defs>
+          <text x="180" y="222" text-anchor="middle">→ «como las agujas del reloj»: arriba de izquierda a derecha</text>
+        </svg>
+      </div>
+    </div></li>
+    <li><div><p>Cuando acabes, cierra la ventana negra (o espera a que termine).</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 5</span> Los números cuadran</h3>
+    <p>La suma de arriba + derecha + abajo + izquierda es igual al número total de LEDs. El recuadro «Tus datos» te avisa si no cuadra. Una diferencia de 1 o 2 suele ser un LED de esquina contado dos veces o ninguna.</p>
+    <p>Si la tira no rodea un lado (por ejemplo, abajo no hay), pon 0.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="fase" id="f7" data-titulo="Arrancar el puente">
+  <div class="fase-head"><span class="num">07</span><h2>Arrancar el puente y dejarlo esperando</h2><p class="why">El puente se queda abierto esperando a que Hyperion le mande colores.</p></div>
+  <ol class="steps">
+    <li><div><p>Doble clic en <b><code>iniciar_puente.bat</code></b>.</p></div></li>
+    <li><div><p>Debe salir:</p>
+<pre class="term">10:30:12 INFO Esperando a Hyperion (udpraw) en UDP 127.0.0.1:5568
+10:30:12 INFO Conectado por HID (Windows): \\?\hid#vid_1a86&amp;pid_fe07#…
+10:30:13 INFO Tira: id 000501, 65 LEDs, 27", firmware 1.8.2, uuid …
+<span class="ok">10:30:13 INFO Usando 65 LEDs, modo sincronía (SC)</span></pre></div></li>
+    <li><div><p><b>Deja esta ventana abierta</b> durante las fases 8 a 13. Puedes minimizarla. Cuando Hyperion empiece a mandar colores, aquí saldrá <span class="mono">Llegan colores de Hyperion</span>.</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 6</span> El puente espera</h3>
+    <p>La última línea es «Usando N LEDs…» y la ventana no se cierra.</p>
+    <details><summary>Si no sale</summary><div>
+      <p><b>«Tira no encontrada; reintento cada 3 s»</b>: vuelve a la fase 5. ¿Quizá se quedó abierta la ventana de <code>contar_leds.bat</code> o <code>probar_tira.bat</code>? Ciérralas.</p>
+      <p><b>«Address already in use» / «Solo se permite un uso de cada dirección»</b>: ya hay otro puente abierto. Cierra todas las ventanas negras (o ejecuta <code>quitar_arranque.bat</code>) y vuelve a empezar.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="fase" id="f8" data-titulo="Instalar Hyperion">
+  <div class="fase-head"><span class="num">08</span><h2>Instalar Hyperion</h2><p class="why">Desde la página oficial del proyecto en GitHub.</p></div>
+  <ol class="steps">
+    <li><div><p>Entra en <a href="https://github.com/hyperion-project/hyperion.ng/releases/latest" target="_blank" rel="noopener">github.com/hyperion-project/hyperion.ng/releases/latest</a>. Arriba pone la versión (cuando se escribió esta guía, <b>2.2.1</b>).</p></div></li>
+    <li><div><p>Baja hasta <b>Assets</b> y descarga el fichero que termina en <b>Windows-x64.exe</b> (por ejemplo <code>Hyperion-2.2.1-Windows-x64.exe</code>, unos 53 MB). No elijas «arm64» salvo que tu PC sea ARM (muy raro), ni el «.zip».</p></div></li>
+    <li><div><p>Ábrelo. Si Windows avisa con «Windows protegió su PC», pulsa <b>Más información → Ejecutar de todas formas</b>: es el instalador oficial que acabas de bajar de GitHub.</p></div></li>
+    <li><div><p>Acepta la licencia y deja todas las opciones como vienen (<b>Siguiente</b>, <b>Siguiente</b>, <b>Instalar</b>). Al final deja marcado arrancar Hyperion y pulsa <b>Finalizar</b>.</p></div></li>
+    <li><div><p>Si salta el <b>Firewall de Windows</b> preguntando por Hyperion, marca solo <b>Redes privadas</b> y pulsa <b>Permitir acceso</b>. Así podrás configurarlo también desde el móvil en casa.</p></div></li>
+    <li><div><p>Junto al reloj (flecha <kbd>^</kbd>) debe aparecer el <b>icono de Hyperion</b>.</p></div></li>
+  </ol>
+  <div class="box info">
+    <p>Hyperion indica en su documentación oficial que la versión de Windows está pensada para <b>Windows 11</b>. En Windows 10 normalmente funciona, pero si algo raro pasa solo en Windows 10, tenlo en cuenta.</p>
+  </div>
+  <div class="box test">
+    <h3><span class="tag">Prueba 7</span> Hyperion abre en el navegador</h3>
+    <p>Abre el navegador y entra en <a href="http://localhost:8090" target="_blank" rel="noopener"><code>http://localhost:8090</code></a>. Debe salir el panel de Hyperion.</p>
+    <p>Puede que al arrancar Hyperion la tira haga unos segundos un efecto de colores. Es su animación de inicio.</p>
+    <details><summary>Si no sale</summary><div>
+      <p><b>«No se puede acceder a este sitio»</b>: Hyperion no está funcionando. Ábrelo desde el menú Inicio (busca «Hyperion»), espera 20 segundos y recarga.</p>
+      <p><b>Pide una contraseña</b>: la de fábrica es <code>hyperion</code>.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="fase" id="f9" data-titulo="Primer vistazo a Hyperion">
+  <div class="fase-head"><span class="num">09</span><h2>Primer vistazo a Hyperion: idioma y nivel de ajustes</h2><p class="why">Para ver todas las opciones que usa la guía.</p></div>
+  <ol class="steps">
+    <li><div><p>El panel sale en el idioma del navegador; normalmente en español. Si no, se cambia en el icono de la <b>llave inglesa</b> (arriba a la derecha).</p></div></li>
+    <li><div><p>En ese mismo icono de la llave inglesa cambia el <b>nivel de ajustes</b> (settings level) de «Por defecto / Default» a <b>«Avanzado / Advanced»</b>. Sin esto, algunas opciones de la guía no aparecen.</p></div></li>
+    <li><div><p>Conoce los iconos de arriba a la derecha que usarás:</p>
+      <div class="table-wrap"><table>
+        <tr><th>Icono</th><th>Para qué</th></tr>
+        <tr><td>Televisión</td><td>Vista en vivo de los LEDs (Live LED visualisation): ves en pantalla lo que Hyperion manda a la tira.</td></tr>
+        <tr><td>Varita mágica</td><td>Asistentes, por ejemplo de calibración de color.</td></tr>
+        <tr><td>Llave inglesa</td><td>Idioma y nivel de ajustes.</td></tr>
+        <tr><td>Botón de encendido</td><td>Pausar, reanudar o reiniciar Hyperion.</td></tr>
+      </table></div>
+      <p>Y en el menú de la izquierda: <b>Panel</b> (Dashboard), <b>General</b>, <b>Instancias LED</b> / <b>Hardware LED</b>, <b>Hardware de captura</b> (Capturing Hardware), <b>Control remoto</b> (Remote Control)…</p>
+    </div></li>
+  </ol>
+  <div class="box info"><p>Los nombres exactos pueden cambiar un poco con la versión o el idioma. Si no encuentras uno, busca uno parecido; entre paréntesis va el nombre en inglés.</p></div>
+  <div class="box test">
+    <h3><span class="tag">Prueba 8</span> Nivel avanzado activo</h3>
+    <p>En la llave inglesa aparece seleccionado «Avanzado».</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="fase" id="f10" data-titulo="Conectar Hyperion con el puente">
+  <div class="fase-head"><span class="num">10</span><h2>Conectar Hyperion con el puente (controlador LED)</h2><p class="why">Aquí le dices a Hyperion que mande los colores al puente.</p></div>
+  <ol class="steps">
+    <li><div><p>Menú izquierdo → <b>Hardware LED</b> (LED Hardware; en algunas versiones está dentro de «Instancias LED») → pestaña <b>Controlador LED</b> (LED Controller).</p></div></li>
+    <li><div><p>En <b>Tipo de controlador</b> (Controller type) elige <b>udpraw</b>. Está en el grupo de red («Network»); puede aparecer como «UDP Raw».</p></div></li>
+    <li><div><p>Rellena:</p>
+      <div class="table-wrap"><table>
+        <tr><th>Campo</th><th>Valor</th></tr>
+        <tr><td>Hostname / IP (Dirección)</td><td><code>127.0.0.1</code></td></tr>
+        <tr><td>Puerto (Port)</td><td><code>5568</code></td></tr>
+        <tr><td>Número de LEDs de hardware (Hardware LED count)</td><td><b id="v-leds-hw">el total de tu tira</b></td></tr>
+        <tr><td>Orden de bytes RGB (RGB byte order)</td><td><code>RGB</code></td></tr>
+        <tr><td>Tiempo de bloqueo (Latch time), si aparece</td><td>déjalo como esté</td></tr>
+      </table></div></div></li>
+    <li><div><p>Pulsa <b>Guardar</b> (Save settings). Si pregunta si quieres crear una distribución de LEDs por defecto, di que <b>sí</b>.</p></div></li>
+    <li><div><p>Si existe el botón <b>Identificar</b> (Identify), púlsalo.</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 9</span> Hyperion llega al puente</h3>
+    <p>En la ventana negra del puente aparece:</p>
+    <pre class="term"><span class="ok">10:41:02 INFO Llegan colores de Hyperion: 65 LEDs por paquete</span></pre>
+    <p>y la tira se enciende (con el efecto de «Identificar» o con colores de la pantalla). Todavía no importa que los colores estén bien colocados.</p>
+    <details><summary>Si no sale</summary><div>
+      <p><b>No aparece «Llegan colores»</b>: revisa IP <code>127.0.0.1</code> y puerto <code>5568</code>, guarda otra vez. Comprueba en el icono de encendido de Hyperion que no está en pausa. Y que la instancia LED está activada (en «Instancias LED» debe estar en marcha).</p>
+      <p><b>Sale «Hyperion manda X colores y la tira tiene Y LEDs»</b>: pon en «Hardware LED count» el número total de LEDs de tu tira.</p>
+      <p><b>Llegan colores pero la tira no cambia</b>: mira si la ventana del puente muestra algún error. Si dice «Se perdió la tira», revisa el USB.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="fase" id="f11" data-titulo="Activar la captura de pantalla">
+  <div class="fase-head"><span class="num">11</span><h2>Activar la captura de pantalla</h2><p class="why">Para que Hyperion mire tu pantalla y saque los colores de ella.</p></div>
+  <ol class="steps">
+    <li><div><p>Menú izquierdo → <b>Hardware de captura</b> (Capturing Hardware).</p></div></li>
+    <li><div><p>En el apartado de <b>captura de pantalla / plataforma</b> (Screen / Platform capture), marca <b>Activar</b> (Enable).</p></div></li>
+    <li><div><p>En <b>Tipo</b> (Type / Device) elige <b>DDA</b> (también llamado «DXGI DDA» o «Desktop Duplication»). Es el método de captura de Windows recomendado desde la versión 2.1.1. El tipo «DirectX» está anticuado; usa «Qt» solo si DDA no funciona.</p></div></li>
+    <li><div><p>Si tienes varios monitores, elige el que tiene la tira (el principal suele ser el 0 o el primero de la lista).</p></div></li>
+    <li><div><p>Deja la frecuencia (Frequency / Capture rate) en unos <b>25–30</b> por segundo y el resto como venga.</p></div></li>
+    <li><div><p>Pulsa <b>Guardar</b>.</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 10</span> La tira sigue a la pantalla</h3>
+    <ul>
+      <li>Abre la vista en vivo (icono de la <b>televisión</b>): se ven cuadros de color que cambian al mover ventanas.</li>
+      <li>La tira cambia de color cuando cambias lo que hay en pantalla (abre una imagen de colores vivos a pantalla completa, por ejemplo).</li>
+      <li>Aún es normal que los colores salgan en el lado equivocado: se arregla en la fase siguiente.</li>
+    </ul>
+    <details><summary>Si no sale</summary><div>
+      <p><b>La vista en vivo se queda negra</b>: prueba el tipo «Qt» en lugar de DDA y guarda. Si usas Escritorio remoto, la captura no funciona: hazlo sentado en el PC.</p>
+      <p><b>Funciona con todo menos con un juego o vídeo</b>: algunos juegos a pantalla completa exclusiva o vídeos protegidos no se dejan capturar. Prueba el juego en «ventana sin bordes».</p>
+      <p><b>Con HDR activado los colores salen apagados</b>: desactiva el HDR de Windows (Configuración → Pantalla) y compara.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="fase" id="f12" data-titulo="Colocar los LEDs (distribución)">
+  <div class="fase-head"><span class="num">12</span><h2>Decirle a Hyperion dónde está cada LED</h2><p class="why">La fase más importante para que la luz «salga» del lado correcto de la pantalla.</p></div>
+  <ol class="steps">
+    <li><div><p>Hardware LED → pestaña <b>Distribución de LEDs</b> (LED Layout) → modo <b>Clásico</b> (Classic).</p></div></li>
+    <li><div><p>Pon los LEDs de cada lado con tus datos de la fase 6:</p>
+      <div class="table-wrap"><table>
+        <tr><th>Campo</th><th>Tu valor</th></tr>
+        <tr><td>Arriba (Top)</td><td><b id="v-arriba">–</b></td></tr>
+        <tr><td>Abajo (Bottom)</td><td><b id="v-abajo">–</b></td></tr>
+        <tr><td>Izquierda (Left)</td><td><b id="v-izquierda">–</b></td></tr>
+        <tr><td>Derecha (Right)</td><td><b id="v-derecha">–</b></td></tr>
+      </table></div></div></li>
+    <li><div><p>Pulsa <b>Actualizar vista previa</b> (Update preview). Verás un rectángulo con los LEDs numerados; el primero (el 0) va marcado.</p></div></li>
+    <li><div><p>Haz que el LED marcado quede donde está tu <b>LED blanco</b>:</p>
+      <ul>
+        <li>Cambia <b>Posición de entrada</b> (Input position / offset) de uno en uno y vuelve a pulsar «Actualizar vista previa» hasta que el primero quede en tu sitio.</li>
+        <li>Si tu tira avanza <b id="v-sentido">en el sentido que apuntaste</b> y en la vista previa la numeración va al revés, marca <b>Dirección inversa</b> (Reverse direction).</li>
+      </ul></div></li>
+    <li><div><p>Si la tira no cubre un hueco (por ejemplo el pie del monitor abajo), hay campos de <b>hueco</b> (Gap length / Gap position). Para empezar, no los toques.</p></div></li>
+    <li><div><p>Pulsa <b>Guardar</b>.</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 11</span> Cada color en su lado</h3>
+    <ol>
+      <li>Pulsa <button type="button" data-prueba="bordes">Abrir pantalla de prueba: bordes</button>. Se pone la pantalla completa con <b>arriba rojo</b>, <b>derecha verde</b>, <b>abajo azul</b> e <b>izquierda amarillo</b>.</li>
+      <li>Mira la pared: cada lado de la tira debe tener el color de su borde.</li>
+      <li>Pulsa <kbd>Esc</kbd> para salir.</li>
+    </ol>
+    <h3><span class="tag">Prueba 12</span> El recorrido va en el sentido correcto</h3>
+    <p>Pulsa <button type="button" data-prueba="vuelta">Abrir pantalla de prueba: punto que da la vuelta</button>. Un bloque blanco recorre el borde de la pantalla en el sentido de las agujas del reloj empezando arriba a la izquierda. La luz de la tira debe seguirlo a la vez, por el mismo sitio.</p>
+    <details><summary>Si no sale</summary><div>
+      <div class="table-wrap"><table>
+        <tr><th>Lo que ves</th><th>Qué cambiar</th></tr>
+        <tr><td>Los colores están en los lados correctos pero «corridos» (el rojo de arriba invade un lado)</td><td><b>Posición de entrada</b>: súbela o bájala unos pocos LEDs.</td></tr>
+        <tr><td>El punto de la tira va en sentido contrario al de la pantalla</td><td>Marca o desmarca <b>Dirección inversa</b>.</td></tr>
+        <tr><td>Izquierda y derecha cambiadas</td><td>Lo apuntaste mirando por detrás. Intercambia los valores izquierda/derecha y prueba también <b>Dirección inversa</b>.</td></tr>
+        <tr><td>Rojo sale verde (o los colores no coinciden aunque estén en su sitio)</td><td>Pestaña Controlador LED → <b>Orden de bytes RGB</b>. Prueba GRB; si no, usa el asistente de la varita mágica («RGB Byte Order»).</td></tr>
+        <tr><td>Una parte de la tira se queda apagada</td><td>La suma de lados es menor que el total. Revisa los números o el «Hardware LED count».</td></tr>
+      </table></div>
+    </div></details>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="fase" id="f13" data-titulo="Ajustar la imagen">
+  <div class="fase-head"><span class="num">13</span><h2>Ajuste fino: colores, retraso y bandas negras</h2><p class="why">Opcional pero recomendable. Aquí es donde Hyperion mejora a DX Light. Cambia una cosa cada vez y guarda.</p></div>
+  <div class="table-wrap"><table>
+    <tr><th>Qué quieres</th><th>Dónde</th><th>Qué tocar</th><th>Prueba</th></tr>
+    <tr><td>Que la luz vaya a la vez que la imagen</td><td>Procesado de imagen → <b>Suavizado</b> (Smoothing)</td><td>Baja el <b>tiempo</b> (Time). Empieza en unos 100–150 ms. Más bajo = más rápido pero más nervioso.</td><td><button type="button" data-prueba="parpadeo">Parpadeo</button></td></tr>
+    <tr><td>Que no parpadee ni dé saltos</td><td>Mismo sitio</td><td>Sube un poco el tiempo de suavizado.</td><td><button type="button" data-prueba="degradado">Degradado</button></td></tr>
+    <tr><td>Que las películas con bandas negras no apaguen la tira</td><td>Procesado de imagen → <b>Detección de bandas negras</b> (Blackbar detection)</td><td>Actívala. Modo <b>Default</b> para casi todo; <b>Letterbox</b> si solo ves pelis con bandas arriba y abajo.</td><td><button type="button" data-prueba="bandas">Bandas negras</button></td></tr>
+    <tr><td>Colores más intensos, menos «lavados»</td><td>Procesado de imagen → <b>Calibración de color</b> → gamma</td><td>Sube la <b>gamma</b> un poco (por ejemplo +0,2 cada vez). Más gamma = medios tonos más oscuros y colores con más cuerpo; menos gamma = todo más claro.</td><td><button type="button" data-prueba="colores">Colores</button></td></tr>
+    <tr><td>Que el blanco sea blanco (ni azulado ni amarillento)</td><td>Varita mágica → <b>asistente de calibración de color</b></td><td>Sigue el asistente; o baja un poco el canal que sobra (azul si sale azulado).</td><td><button type="button" data-prueba="blanco">Blanco</button></td></tr>
+    <tr><td>Más o menos brillo</td><td>Calibración de color → <b>Brillo</b> (Brightness)</td><td>Ajusta a tu gusto.</td><td>—</td></tr>
+  </table></div>
+
+  <h3>Modo normal o modo detalle (34 o 60 zonas)</h3>
+  <p>La tira puede trabajar de dos formas y puedes cambiar de una a otra cuando quieras, con doble clic, sin reiniciar nada:</p>
+  <div class="table-wrap"><table>
+    <tr><th>Fichero</th><th>Modo</th><th>Cómo se ve</th></tr>
+    <tr><td><code>zonas_34.bat</code></td><td><b>Normal</b>: 34 zonas de color, como DX Light</td><td>Más suave: los LEDs vecinos se mezclan un poco.</td></tr>
+    <tr><td><code>zonas_60.bat</code></td><td><b>Detalle</b>: 60 zonas (en una tira de 54 LEDs, un color por LED)</td><td>Más definido y con más contraste. Las zonas brillantes se ven más brillantes porque ya no se mezclan con las oscuras. Es normal y no consume más.</td></tr>
+  </table></div>
+  <ol>
+    <li>Haz doble clic en el que quieras. Sale un mensaje y la ventana se cierra sola. El cambio se nota en un segundo.</li>
+    <li>El puente recuerda el último modo, también después de reiniciar el PC.</li>
+    <li>Para tenerlos a mano: doble clic en <code>accesos_escritorio.bat</code>. Pone en el escritorio «Tira - modo normal (34 zonas)» y «Tira - modo detalle (60 zonas)».</li>
+  </ol>
+  <p style="color:var(--muted);font-size:.9rem">Funciona igual con el servicio (fase 14) que con la ventana de <code>iniciar_puente.bat</code>. El modo elegido queda en el fichero <code>zonas.txt</code>.</p>
+  <p style="color:var(--muted);font-size:.9rem">Si en modo detalle la tira se congela o hace cosas raras, vuelve al modo normal con <code>zonas_34.bat</code>. Con la tira de 54 LEDs y firmware 1.7.3 el modo detalle funciona.</p>
+
+  <details><summary>Avanzado: más brillo en el blanco</summary><div>
+    <p>El puente limita cada LED para no pedir al USB más corriente de la que da (igual que DX Light). Por eso el blanco se ve gris claro. Si tu tira tiene alimentación propia, o quieres probar, añade <code>--sin-limite</code> a la línea <code>py -3 robobloq_bridge.py --puerto 5568</code> de <code>iniciar_puente.bat</code> (clic derecho → Editar) y, si usas el servicio, a la línea <code>OPCIONES</code> de <code>instalar_servicio.bat</code>.</p>
+    <div class="box bad"><h3><span class="tag b">Cuidado</span> Si la tira se apaga o se reinicia</h3><p>Si al poner la pantalla en blanco la tira se apaga, parpadea o el PC avisa de un problema con el USB, quita <code>--sin-limite</code>. El USB no da para tanto.</p></div>
+  </div></details>
+
+  <div class="box test">
+    <h3><span class="tag">Prueba 13</span> Una escena real</h3>
+    <p>Pon un vídeo con mucho movimiento y colores (por ejemplo un tráiler o un vídeo de naturaleza en 4K) a pantalla completa. La luz debe acompañar a la imagen sin retraso evidente y sin parpadeos molestos. Si quieres, compáralo con DX Light (cierra antes el puente y Hyperion).</p>
+  </div>
+</section>
+
+<!-- 14 -->
+<section class="fase" id="f14" data-titulo="Dejarlo todo automático">
+  <div class="fase-head"><span class="num">14</span><h2>Dejarlo todo automático al encender el PC</h2><p class="why">Para no tener que abrir nada a mano nunca más y sin ninguna ventana abierta.</p></div>
+  <h3>Opción recomendada: el puente como servicio de Windows</h3>
+  <p>Así el puente funciona como cualquier otro servicio de Windows: arranca solo al encender el PC (incluso antes de iniciar sesión), no abre ninguna ventana y, si se cae, Windows lo vuelve a arrancar.</p>
+  <ol class="steps">
+    <li><div><p>Cierra la ventana negra del puente (la de <code>iniciar_puente.bat</code>).</p></div></li>
+    <li><div><p>Si en la fase 13 añadiste <code>--sin-limite</code>: clic derecho en <code>instalar_servicio.bat</code> → <b>Editar</b>, y añádelo en la línea <code>set "OPCIONES=--puerto 5568"</code>, dentro de las comillas. Guarda y cierra. El modo de zonas (34 o 60) no hace falta ponerlo aquí: lo recuerda solo.</p></div></li>
+    <li><div><p>Clic derecho en <b><code>instalar_servicio.bat</code></b> → <b>Ejecutar como administrador</b> → <b>Sí</b>.</p></div></li>
+    <li><div><p>Verás cinco pasos (quitar versiones anteriores, buscar Python, preparar el lanzador, registrar el servicio y arrancarlo) y al final:</p>
+<pre class="term">=== 5/5  Arrancando ===
+
+<span class="ok">LISTO. El servicio "Puente Hyperion Robobloq" esta funcionando y arrancara
+solo cada vez que enciendas el PC, sin ventanas.</span>
+Ultimas lineas de puente.log:
+… INFO Puente Hyperion -&gt; tira Robobloq, versión 1.3.0
+… INFO Llegan colores de Hyperion: 54 LEDs por paquete</pre>
+      <p>Pulsa una tecla para cerrar. Si antes usabas <code>arranque_automatico.bat</code>, el instalador ya lo ha quitado.</p></div></li>
+  </ol>
+  <details><summary>Qué hace exactamente el instalador</summary><div>
+    <p>Busca tu Python y compila un lanzador pequeño (<code>PuenteHyperionServicio.exe</code>) con el compilador de .NET que ya trae Windows; su código está en <code>servicio_windows.cs</code>, por si quieres leerlo. Registra el servicio «Puente Hyperion Robobloq» con arranque automático y le dice a Windows que lo vuelva a arrancar si falla. Las opciones del puente quedan en <code>servicio.cfg</code>; lo que hace el lanzador, en <code>servicio.log</code>; lo que hace el puente, en <code>puente.log</code>.</p>
+    <p>Para quitarlo: <code>desinstalar_servicio.bat</code> como administrador. Puedes volver a ejecutar <code>instalar_servicio.bat</code> cuando quieras (por ejemplo tras actualizar el puente): lo reinstala.</p>
+  </div></details>
+
+  <h3>Hyperion</h3>
+  <p>Hyperion tiene que seguir como programa normal, no como servicio: necesita ver tu escritorio para copiar la pantalla. Comprueba si arranca solo con Windows: reinicia el PC y espera un minuto. Si aparece su icono junto al reloj, ya está. Si no:</p>
+  <ol>
+    <li>Pulsa <kbd>Windows</kbd>+<kbd>R</kbd>, escribe <code>shell:startup</code> y pulsa Intro. Se abre la carpeta Inicio.</li>
+    <li>Abre el menú Inicio, busca «Hyperion», clic derecho → <b>Abrir ubicación de archivo</b>.</li>
+    <li>Copia el acceso directo de Hyperion (<kbd>Ctrl</kbd>+<kbd>C</kbd>) y pégalo en la carpeta Inicio (<kbd>Ctrl</kbd>+<kbd>V</kbd>).</li>
+  </ol>
+
+  <details><summary>Alternativa sin permisos de administrador</summary><div>
+    <p>Si no puedes ejecutar nada como administrador, haz doble clic en <code>arranque_automatico.bat</code>: arranca el puente sin ventana al iniciar sesión (no antes) y no se vuelve a levantar si se cae. Se quita con <code>quitar_arranque.bat</code>. No uses las dos opciones a la vez.</p>
+  </div></details>
+
+  <div class="box test">
+    <h3><span class="tag">Prueba 14</span> Reinicio en frío</h3>
+    <ol>
+      <li>Pulsa <kbd>Windows</kbd>+<kbd>R</kbd>, escribe <code>services.msc</code> y pulsa Intro. Busca <b>Puente Hyperion Robobloq</b>: Estado «En ejecución», Tipo de inicio «Automático».</li>
+      <li>Reinicia el PC, inicia sesión, espera un minuto y pon algo de color en pantalla. La tira debe funcionar sola, sin ninguna ventana abierta.</li>
+    </ol>
+    <details><summary>Si no sale</summary><div>
+      <p><b>El instalador dice «Hay que ejecutarlo como administrador»</b>: no lo abras con doble clic; usa clic derecho → Ejecutar como administrador.</p>
+      <p><b>El servicio no arranca o la tira no responde</b>: abre con el Bloc de notas <code>C:\hyperion-robobloq\servicio.log</code> y <code>puente.log</code>. Si dice «Tira no encontrada», revisa el USB y que no haya otra ventana del puente abierta. Si no llegan colores, Hyperion no ha arrancado: mira su icono junto al reloj.</p>
+      <p><b>Quieres volver a ver la ventana negra para hacer pruebas</b>: ejecuta <code>desinstalar_servicio.bat</code> como administrador y luego <code>iniciar_puente.bat</code>. Al acabar, vuelve a instalar el servicio.</p>
+    </div></details>
+  </div>
+</section>
+
+<!-- 15 -->
+<section class="fase" id="f15" data-titulo="Desinstalar DX Light (o volver a él)">
+  <div class="fase-head"><span class="num">15</span><h2>Desinstalar DX Light… o volver a él</h2><p class="why">Solo cuando lleves unos días contento con Hyperion.</p></div>
+  <h3>Desinstalar DX Light</h3>
+  <ol class="steps">
+    <li><div><p>Configuración de Windows → <b>Aplicaciones</b> → <b>Aplicaciones instaladas</b> (o «Aplicaciones y características»).</p></div></li>
+    <li><div><p>Busca <b>DX Light</b> → <b>Desinstalar</b> y sigue el asistente.</p></div></li>
+    <li><div><p>Reinicia y comprueba que la tira sigue funcionando con Hyperion.</p></div></li>
+  </ol>
+  <h3>Plan B: volver a DX Light</h3>
+  <ol class="steps">
+    <li><div><p>Clic derecho en <code>desinstalar_servicio.bat</code> → Ejecutar como administrador (o, si usaste la alternativa, doble clic en <code>quitar_arranque.bat</code>).</p></div></li>
+    <li><div><p>Cierra Hyperion: clic derecho en su icono junto al reloj → salir. Si lo pegaste en <code>shell:startup</code>, borra ese acceso directo.</p></div></li>
+    <li><div><p>Administrador de tareas → Inicio → DX Light → <b>Habilitar</b>, y ábrelo.</p></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 15</span> Todo limpio</h3>
+    <p>Tras reiniciar, solo uno de los dos sistemas controla la tira: o Hyperion con el puente, o DX Light. Nunca los dos.</p>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="fase" id="f16" data-titulo="Problemas frecuentes">
+  <div class="fase-head"><span class="num">16</span><h2>Problemas frecuentes</h2><p class="why">Síntoma, causa probable y qué hacer.</p></div>
+  <div class="table-wrap"><table>
+    <tr><th>Síntoma</th><th>Causa probable</th><th>Qué hacer</th></tr>
+    <tr><td>Los .bat se abren y se cierran al momento</td><td>Python no instalado o sin PATH</td><td>Fase 3, prueba 2.</td></tr>
+    <tr><td>«No se ha encontrado ninguna tira»</td><td>USB, DX Light abierto o variante serie</td><td>Fase 5, «Si no sale».</td></tr>
+    <tr><td>La tira parpadea entre dos estados</td><td>DX Light y el puente a la vez, o dos puentes</td><td>Cierra DX Light; ejecuta <code>quitar_arranque.bat</code> y arranca un solo puente.</td></tr>
+    <tr><td>El puente no dice «Llegan colores de Hyperion»</td><td>IP/puerto distintos, Hyperion pausado o la instancia LED parada</td><td>Fase 10, «Si no sale».</td></tr>
+    <tr><td>Hyperion manda X colores y la tira tiene Y LEDs</td><td>Hardware LED count distinto</td><td>Ponlo igual al total de la tira (fase 10).</td></tr>
+    <tr><td>Colores en el lado equivocado</td><td>Distribución de LEDs</td><td>Fase 12, tabla de arreglos.</td></tr>
+    <tr><td>Rojo sale verde</td><td>Orden de color</td><td>Orden de bytes RGB → GRB (fase 12).</td></tr>
+    <tr><td>Retraso entre imagen y luz</td><td>Suavizado alto</td><td>Fase 13: baja el tiempo de suavizado.</td></tr>
+    <tr><td>Blanco flojo</td><td>Límite de consumo del USB</td><td>Normal. Opción avanzada en fase 13.</td></tr>
+    <tr><td>La tira se congela o falla en modo detalle (60 zonas)</td><td>La tira no acepta tantas zonas</td><td>Vuelve al modo normal con <code>zonas_34.bat</code>.</td></tr>
+    <tr><td>Tras suspender el PC la tira no responde</td><td>El USB se reconecta</td><td>Espera 5 segundos (el puente se reconecta solo). Si sigue, reinicia Hyperion desde su icono.</td></tr>
+    <tr><td>La vista en vivo de Hyperion está negra</td><td>Captura no activada o tipo no compatible</td><td>Fase 11: prueba DDA y luego Qt.</td></tr>
+    <tr><td>Se queda una ventana negra abierta de fondo</td><td>El puente se arranca con <code>iniciar_puente.bat</code></td><td>Instálalo como servicio (fase 14) y cierra esa ventana.</td></tr>
+    <tr><td>La ventana del puente se cierra con <code>BlockingIOError</code> / <code>WinError 10035</code></td><td>Fallo de la versión 1.0.0 del puente (11/11/2026)</td><td>Actualiza el puente (recuadro de abajo). Desde la 1.0.1 no pasa.</td></tr>
+  </table></div>
+  <div class="box info">
+    <h3>Cómo actualizar el puente</h3>
+    <p>La primera línea de la ventana negra (o de <code>puente.log</code>) dice qué versión tienes, por ejemplo «versión 1.0.1». Para poner la última:</p>
+    <ol>
+      <li>Descarga otra vez <code>hyperion-robobloq.zip</code> (fase 4) y ábrelo con doble clic, sin extraer.</li>
+      <li>Copia <code>robobloq_bridge.py</code> y los ficheros que no tengas (por ejemplo <code>instalar_servicio.bat</code>, <code>zonas_34.bat</code>, <code>zonas_60.bat</code>…) encima de los de <code>C:\hyperion-robobloq</code> → Reemplazar. Si no cambiaste nada en los .bat, puedes copiarlo todo.</li>
+      <li>Clic derecho en <code>instalar_servicio.bat</code> → Ejecutar como administrador. Reinstala el servicio con la versión nueva.</li>
+    </ol>
+  </div>
+  <div class="box info">
+    <h3>Para pedir ayuda</h3>
+    <p>Copia lo que pone la ventana negra (selecciona el texto arrastrando con el ratón y pulsa <kbd>Intro</kbd> o <kbd>Ctrl</kbd>+<kbd>C</kbd>) o adjunta <code>C:\hyperion-robobloq\puente.log</code>, y di en qué prueba te has quedado.</p>
+  </div>
+</section>
+
+<!-- 17 -->
+<section class="fase" id="f17" data-titulo="Segunda tira: la barra de abajo">
+  <div class="fase-head"><span class="num">17</span><h2>Segunda tira: la barra de abajo</h2><p class="why">Opcional. Con otro kit igual al tuyo puesto en recto debajo del monitor, la luz rodea la pantalla por los cuatro lados.</p></div>
+  <p>En Hyperion sigue habiendo <b>una sola instancia</b>, con los cuatro lados. El puente reparte los colores: los de los lados y arriba van a tu tira de siempre, y los de abajo a la barra. Cada tira se reconoce por su número de serie, así que da igual en qué USB enchufes cada una.</p>
+  <p>De la barra puedes usar solo una parte. Por ejemplo, del LED 1 al 25 debajo del monitor, del 26 al 32 apagados (el trozo que baja hasta la mesa) y del 33 al 54 en el borde de la mesa, repitiendo lo mismo que debajo del monitor.</p>
+  <ol class="steps">
+    <li><div><p><b>Actualiza el puente</b> a la versión 1.3.0 o posterior, como dice el recuadro «Cómo actualizar el puente» de la fase 16. Copia también <code>configurar_tiras.bat</code> e <code>invertir_barra.bat</code>.</p></div></li>
+    <li><div><p><b>Enchufa las dos tiras</b>, cada una en su propio USB de la torre. Mejor no las pongas juntas en un hub sin alimentación: cada una necesita su corriente.</p></div></li>
+    <li><div><p><b>Coloca la barra</b> donde vaya a ir, sujeta de momento con cinta de carrocero: debajo del monitor y, si quieres, bajando hasta el borde de la mesa.</p></div></li>
+    <li><div><p>Clic derecho en <b><code>configurar_tiras.bat</code></b> → <b>Ejecutar como administrador</b>. Si el servicio está en marcha, lo para mientras configuras y lo vuelve a arrancar al acabar. Contesta lo que te pregunta:</p>
+      <ul>
+        <li>Enciende cada tira de un color: di cuál es la de los lados (1) y cuál la barra (2).</li>
+        <li>Enciende el LED 1 de cada tira en blanco: di si los dos están en el mismo lado.</li>
+        <li>Pinta la barra en bloques de 10 LEDs: escribe qué LEDs quedan debajo del monitor y, si usas la mesa, cuáles van en su borde.</li>
+        <li>Te enseña cómo queda y, si usas la mesa, mueve un punto rojo por los dos trozos para comprobar que van hacia el mismo lado.</li>
+      </ul>
+      <p>Al final verás algo así:</p>
+<pre class="term"><span class="ok">LISTO. Guardado en tiras.txt:</span>
+   tira lados uuid=… hyperion=resto leds=1-54
+   tira barra uuid=… hyperion=55-79 leds=25-1,54-33
+
+Ahora, en Hyperion (en la instancia de siempre, Hardware LED):
+  2. Número de LEDs: 79 (los 54 de los lados más 25 de abajo).
+  3. Distribución de LEDs: … pon ABAJO = 25.</pre></div></li>
+    <li><div><p><b>En Hyperion</b>, en la instancia de siempre, <b>Hardware LED</b>:</p>
+      <ul>
+        <li><b>Controlador LED</b>: el mismo que tenías (<code>udpraw</code>, 127.0.0.1, puerto 5568). Cambia solo el <b>número de LEDs</b> al total que te dijo el asistente.</li>
+        <li><b>Distribución de LEDs</b>: deja izquierda, arriba y derecha como estaban y pon en <b>abajo</b> el número que te dijo el asistente: solo los LEDs de debajo del monitor, sin los apagados ni los de la mesa. El hueco de abajo («gap») se queda en 0, y «invertir dirección» como lo tenías.</li>
+        <li>En el dibujo, el LED 1 tiene que seguir en el mismo sitio que antes, en el principio de tu tira de los lados. Si se ha movido, cambia la <b>Posición de entrada</b> sumando o restando los LEDs de abajo hasta que vuelva a su sitio.</li>
+        <li>Guarda.</li>
+      </ul></div></li>
+  </ol>
+  <div class="box test">
+    <h3><span class="tag">Prueba 16</span> La luz da la vuelta completa</h3>
+    <ol>
+      <li>Abre la <b>pantalla de prueba</b> de esta guía a pantalla completa y elige la luz que da la vuelta.</li>
+      <li>El punto tiene que recorrer los lados y arriba con tu tira de siempre, y seguir por abajo con la barra, sin saltos.</li>
+      <li>Si en la barra el punto va <b>al revés</b>, doble clic en <code>invertir_barra.bat</code>. Se aplica al momento.</li>
+    </ol>
+    <details><summary>Si no sale</summary><div>
+      <p><b>El asistente dice «Solo veo 1 tira»</b>: enchufa las dos, cada una en su USB, y comprueba que DX Light está cerrado.</p>
+      <p><b>La barra no se enciende</b>: en Hyperion no has cambiado el número de LEDs. En <code>puente.log</code> verás «Hyperion manda 54 colores y se esperan 79».</p>
+      <p><b>Los colores de los lados se han movido</b>: el LED 1 ha cambiado de sitio en Hyperion. Arréglalo con la Posición de entrada, como en el paso 5.</p>
+      <p><b>Quieres volver a una sola tira</b>: borra <code>C:\hyperion-robobloq\tiras.txt</code>. El puente lo nota en un segundo. Luego deja en Hyperion el número de LEDs como antes y abajo en 0.</p>
+      <p><b>Quieres cambiar los tramos de la barra</b>: vuelve a ejecutar <code>configurar_tiras.bat</code>, o abre <code>tiras.txt</code> con el Bloc de notas. Al principio del fichero explica qué es cada cosa.</p>
+    </div></details>
+  </div>
+</section>
+
+    </main>
+  </div>
+</div>
+
+<div id="prueba" hidden role="dialog" aria-label="Pantalla de prueba">
+  <canvas id="lienzo"></canvas>
+  <div class="ctl" id="ctl">
+    <b>Pantalla de prueba</b>
+    <div class="modes" id="modos">
+      <button type="button" data-m="bordes">Bordes de colores</button>
+      <button type="button" data-m="vuelta">Punto que da la vuelta</button>
+      <button type="button" data-m="colores">Colores</button>
+      <button type="button" data-m="blanco">Blanco</button>
+      <button type="button" data-m="parpadeo">Parpadeo</button>
+      <button type="button" data-m="degradado">Degradado</button>
+      <button type="button" data-m="bandas">Bandas negras</button>
+    </div>
+    <p id="explica" style="margin:0;color:#ccc"></p>
+    <p style="margin:0;color:#999;font-size:.82rem">Este panel se oculta solo a los 3 segundos; mueve el ratón para verlo. <kbd>Esc</kbd> o el botón para salir.</p>
+    <div><button type="button" id="cerrar-prueba">Salir de la prueba</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var ZIP_B64 = "";
+  var MODO = "web";
+  var CLAVE = "guia-hyperion-dxlight-v1";
+
+  function leer() { try { return JSON.parse(localStorage.getItem(CLAVE) || "{}"); } catch (e) { return {}; } }
+  function guardar(s) { try { localStorage.setItem(CLAVE, JSON.stringify(s)); } catch (e) {} }
+  var estado = leer(); estado.hecho = estado.hecho || {}; estado.datos = estado.datos || {};
+
+  // Índice y casillas de «hecho»
+  var fases = Array.prototype.slice.call(document.querySelectorAll("section.fase"));
+  var indice = document.getElementById("indice");
+  fases.forEach(function (sec, i) {
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = "#" + sec.id; a.id = "toc-" + sec.id;
+    var n = document.createElement("span"); n.className = "n"; n.textContent = String(i).padStart(2, "0");
+    var t = document.createElement("span"); t.textContent = sec.getAttribute("data-titulo");
+    a.appendChild(n); a.appendChild(t); li.appendChild(a); indice.appendChild(li);
+    var fila = document.createElement("div"); fila.className = "done-row";
+    var lab = document.createElement("label");
+    var cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "hecho-" + sec.id;
+    cb.checked = !!estado.hecho[sec.id];
+    cb.addEventListener("change", function () { estado.hecho[sec.id] = cb.checked; guardar(estado); pintarProgreso(); });
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(i === 0 ? "Leído" : "Fase hecha"));
+    fila.appendChild(lab); sec.appendChild(fila);
+  });
+  function pintarProgreso() {
+    var hechas = 0;
+    fases.forEach(function (sec) {
+      var ok = !!estado.hecho[sec.id];
+      if (ok) hechas++;
+      sec.classList.toggle("done", ok);
+      document.getElementById("toc-" + sec.id).classList.toggle("done", ok);
+    });
+    document.getElementById("barra").style.width = (100 * hechas / fases.length) + "%";
+    document.getElementById("progreso-txt").textContent = hechas + " de " + fases.length + " fases hechas";
+  }
+  pintarProgreso();
+  var reiniciar = document.getElementById("reiniciar"), armado = false;
+  reiniciar.addEventListener("click", function () {
+    if (!armado) { armado = true; reiniciar.textContent = "Pulsa otra vez para desmarcar"; setTimeout(function () { armado = false; reiniciar.textContent = "Desmarcar todo"; }, 4000); return; }
+    estado.hecho = {}; guardar(estado);
+    fases.forEach(function (sec) { document.getElementById("hecho-" + sec.id).checked = false; });
+    armado = false; reiniciar.textContent = "Desmarcar todo"; pintarProgreso();
+  });
+
+  // Tus datos
+  var campos = ["leds", "firmware", "monitor", "orden", "arriba", "derecha", "abajo", "izquierda", "inicio", "sentido"];
+  campos.forEach(function (c) {
+    var el = document.getElementById("d-" + c);
+    if (estado.datos[c] != null) el.value = estado.datos[c];
+    el.addEventListener("input", function () { estado.datos[c] = el.value; guardar(estado); pintarDatos(); });
+    el.addEventListener("change", function () { estado.datos[c] = el.value; guardar(estado); pintarDatos(); });
+  });
+  function num(c) { var v = parseInt(estado.datos[c], 10); return isNaN(v) ? null : v; }
+  function pintarDatos() {
+    var total = num("leds"), lados = ["arriba", "derecha", "abajo", "izquierda"].map(num);
+    var suma = lados.reduce(function (a, b) { return a + (b || 0); }, 0);
+    var r = document.getElementById("resumen-datos");
+    if (total && lados.some(function (x) { return x != null; })) {
+      r.textContent = suma === total ? "✓ Los lados suman " + suma + ", igual que el total." :
+        "Los lados suman " + suma + " y el total es " + total + " (diferencia " + (suma - total) + ").";
+      r.style.color = suma === total ? "var(--ok)" : "var(--warn)";
+    } else { r.textContent = ""; }
+    document.getElementById("v-leds-hw").textContent = total ? String(total) : "el total de tu tira";
+    ["arriba", "abajo", "izquierda", "derecha"].forEach(function (c) {
+      var v = num(c); document.getElementById("v-" + c).textContent = v == null ? "–" : String(v);
+    });
+    var s = estado.datos.sentido;
+    document.getElementById("v-sentido").textContent = s === "h" ? "como las agujas del reloj" : s === "a" ? "al contrario que las agujas del reloj" : "en el sentido que apuntaste";
+  }
+  pintarDatos();
+
+  // Copiar
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-copy]"); if (!b) return;
+    var txt = b.getAttribute("data-copy");
+    function hecho() { b.textContent = "Copiado"; setTimeout(function () { b.textContent = "Copiar"; }, 1500); }
+    try { navigator.clipboard.writeText(txt).then(hecho, function () { seleccionar(b); }); } catch (e) { seleccionar(b); }
+  });
+  function seleccionar(b) { var c = b.parentNode.querySelector("code"); var r = document.createRange(); r.selectNodeContents(c); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+  // Descarga del paquete
+  var btnZip = document.getElementById("btn-zip"), zipEstado = document.getElementById("zip-estado");
+  if (MODO === "pdf") {
+    document.getElementById("descarga-online").hidden = true;
+    document.getElementById("descarga-pdf").hidden = false;
+  } else if (MODO === "web") {
+    // En la web, el zip está junto a la página
+    zipEstado.textContent = "Unos 61 KB";
+    btnZip.addEventListener("click", function () {
+      var a = document.createElement("a"); a.href = "hyperion-robobloq.zip"; a.download = "hyperion-robobloq.zip";
+      document.body.appendChild(a); a.click(); a.remove();
+      zipEstado.textContent = "Se guarda en tu carpeta Descargas.";
+    });
+  } else if (MODO !== "online" || !ZIP_B64 || ZIP_B64.indexOf("__") === 0) {
+    document.getElementById("descarga-online").hidden = true;
+    document.getElementById("descarga-local").hidden = false;
+  } else {
+    btnZip.disabled = true; zipEstado.textContent = "Preparando…";
+    var descargas = null;
+    var listo = window.claude && window.claude.use ? window.claude.use("downloads") : Promise.resolve(null);
+    listo.then(function (d) {
+      descargas = d;
+      if (!d) { document.getElementById("descarga-online").hidden = true; document.getElementById("descarga-fallo").hidden = false; return; }
+      btnZip.disabled = false; zipEstado.textContent = "Unos " + Math.round(ZIP_B64.length * 0.75 / 1024) + " KB";
+    }, function () { document.getElementById("descarga-online").hidden = true; document.getElementById("descarga-fallo").hidden = false; });
+    btnZip.addEventListener("click", function () {
+      if (!descargas) return;
+      var bin = atob(ZIP_B64), bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      zipEstado.textContent = "Confirma la descarga en el aviso…";
+      descargas.save({ filename: "hyperion-robobloq.zip", data: bytes }).then(function () {
+        zipEstado.textContent = "Guardado en tu carpeta de descargas.";
+      }, function (e) {
+        var c = e && e.code;
+        zipEstado.textContent = c === "declined" ? "Descarga cancelada. Puedes volver a pulsar." :
+          c === "rate_limited" ? "Hay otro aviso abierto; espera un momento." : "No se pudo descargar aquí.";
+        if (c !== "declined" && c !== "rate_limited") document.getElementById("descarga-fallo").hidden = false;
+      });
+    });
+  }
+
+  // Pantalla de prueba
+  var capa = document.getElementById("prueba"), lienzo = document.getElementById("lienzo"), ctx = lienzo.getContext("2d");
+  var ctl = document.getElementById("ctl"), explica = document.getElementById("explica");
+  var modo = "bordes", t0 = 0, raf = 0, ocultar = 0;
+  var textos = {
+    bordes: "Arriba rojo, derecha verde, abajo azul, izquierda amarillo. Cada lado de la tira debe tener el color de su borde.",
+    vuelta: "Un bloque blanco da la vuelta al borde en el sentido de las agujas del reloj, empezando arriba a la izquierda. La luz de la tira debe seguirlo.",
+    colores: "Cambia cada 2 segundos: rojo, verde, azul, amarillo, morado, celeste, blanco y negro. La tira debe cambiar a la vez y con el mismo color.",
+    blanco: "Pantalla blanca. Sirve para ajustar el balance de blancos: la pared no debe verse azulada ni amarillenta.",
+    parpadeo: "Alterna blanco y negro dos veces por segundo. Sirve para ver el retraso: cuanto más a la vez cambie la tira, mejor.",
+    degradado: "Un arcoíris que se desplaza despacio. La luz debe moverse suave, sin saltos ni parpadeos.",
+    bandas: "Imagen con bandas negras arriba y abajo, como una película. Con la detección de bandas activada, la tira de arriba y abajo debe tomar el color de la imagen, no apagarse."
+  };
+  function tam() { var dpr = Math.min(window.devicePixelRatio || 1, 2); lienzo.width = innerWidth * dpr; lienzo.height = innerHeight * dpr; }
+  function abrir(m) {
+    modo = m || modo; capa.hidden = false; tam(); t0 = performance.now(); marcar(); mostrarCtl();
+    try { var p = capa.requestFullscreen && capa.requestFullscreen(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(dibujar);
+  }
+  function cerrar() {
+    capa.hidden = true; cancelAnimationFrame(raf);
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+  }
+  function marcar() {
+    Array.prototype.forEach.call(document.querySelectorAll("#modos button"), function (b) { b.classList.toggle("on", b.getAttribute("data-m") === modo); });
+    explica.textContent = textos[modo];
+  }
+  function mostrarCtl() { ctl.classList.remove("hide"); clearTimeout(ocultar); ocultar = setTimeout(function () { ctl.classList.add("hide"); }, 3000); }
+  capa.addEventListener("mousemove", mostrarCtl);
+  capa.addEventListener("click", function (e) { if (e.target === lienzo) mostrarCtl(); });
+  document.getElementById("modos").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { modo = b.getAttribute("data-m"); t0 = performance.now(); marcar(); mostrarCtl(); } });
+  document.getElementById("cerrar-prueba").addEventListener("click", cerrar);
+  document.getElementById("abrir-prueba").addEventListener("click", function () { abrir("bordes"); });
+  document.addEventListener("click", function (e) { var b = e.target.closest("[data-prueba]"); if (b) abrir(b.getAttribute("data-prueba")); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !capa.hidden) cerrar(); });
+  document.addEventListener("fullscreenchange", function () { if (!document.fullscreenElement && !capa.hidden) { /* el usuario salió con Esc */ cerrar(); } });
+  window.addEventListener("resize", function () { if (!capa.hidden) tam(); });
+
+  var paleta = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff", "#ffffff", "#000000"];
+  function dibujar(ahora) {
+    var W = lienzo.width, H = lienzo.height, t = (ahora - t0) / 1000, g = Math.round(Math.min(W, H) * 0.14);
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+    if (modo === "bordes") {
+      ctx.fillStyle = "#ff0000"; ctx.fillRect(0, 0, W, g);
+      ctx.fillStyle = "#0000ff"; ctx.fillRect(0, H - g, W, g);
+      ctx.fillStyle = "#ffff00"; ctx.fillRect(0, g, g, H - 2 * g);
+      ctx.fillStyle = "#00ff00"; ctx.fillRect(W - g, g, g, H - 2 * g);
+    } else if (modo === "vuelta") {
+      var per = 2 * (W + H), pos = (t * per / 12) % per, b = g * 1.6, x, y;
+      if (pos < W) { x = pos; y = 0; } else if (pos < W + H) { x = W - b; y = pos - W; }
+      else if (pos < 2 * W + H) { x = W - (pos - W - H) - b; y = H - b; } else { x = 0; y = H - (pos - 2 * W - H) - b; }
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(Math.max(0, Math.min(W - b, x)), Math.max(0, Math.min(H - b, y)), b, b);
+    } else if (modo === "colores") {
+      ctx.fillStyle = paleta[Math.floor(t / 2) % paleta.length]; ctx.fillRect(0, 0, W, H);
+    } else if (modo === "blanco") {
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+    } else if (modo === "parpadeo") {
+      ctx.fillStyle = Math.floor(t * 2) % 2 ? "#000000" : "#ffffff"; ctx.fillRect(0, 0, W, H);
+    } else if (modo === "degradado") {
+      var gr = ctx.createLinearGradient(0, 0, W, 0), d = (t * 0.05) % 1;
+      for (var i = 0; i <= 6; i++) gr.addColorStop(i / 6, "hsl(" + Math.round((i / 6 + d) * 360) % 360 + ",100%,50%)");
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+    } else if (modo === "bandas") {
+      var banda = Math.round(H * 0.12), gr2 = ctx.createLinearGradient(0, banda, W, H - banda);
+      gr2.addColorStop(0, "#ff5a00"); gr2.addColorStop(0.5, "#ffd000"); gr2.addColorStop(1, "#0066ff");
+      ctx.fillStyle = gr2; ctx.fillRect(0, banda, W, H - 2 * banda);
+    }
+    raf = requestAnimationFrame(dibujar);
+  }
+})();
+</script>
+</body></html>

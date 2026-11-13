@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guías LED para Hyperion</title>
+<meta name="description" content="Guías paso a paso para que Hyperion mueva las luces LED del monitor y de la tele: tira DX Light (Robobloq) con puente, y tira WLED con GLEDOPTO GL-C-616WL o SP803E.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --fg:#1a1f27; --muted:#596273; --line:#d9dee6;
+  --accent:#0d7480; --accent-soft:#e2f2f3;
+  --f-display:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0f1317; --surface:#171c22; --fg:#e5e9ee; --muted:#9aa4b3; --line:#2a313b;
+  --accent:#43b8c2; --accent-soft:#16343a; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding:0 16px 48px}
+.wrap{max-width:760px;margin:0 auto}
+header{padding:40px 0 24px;display:grid;gap:10px}
+h1,h2{font-family:var(--f-display);line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:2rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:700}
+p{margin:0}
+.lead{color:var(--muted);max-width:62ch}
+.guias{display:grid;gap:16px}
+.guia{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:10px}
+.etiqueta{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.acciones a{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);
+  color:var(--fg);text-decoration:none;font-size:.92rem;font-weight:500;background:var(--bg)}
+.acciones a.principal{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){.acciones a.principal{color:#0f1317}}
+.acciones a:hover{border-color:var(--accent)}
+.acciones a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+footer{padding-top:28px;color:var(--muted);font-size:.88rem;display:grid;gap:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Guías LED para Hyperion</h1>
+  <p class="lead">Guías paso a paso para que Hyperion mueva las luces LED del monitor y de la tele, copiando los colores de la pantalla. Pensadas para alguien que no lo ha hecho nunca.</p>
+</header>
+
+<main class="guias">
+  <section class="guia">
+    <div class="etiqueta">Tira USB del monitor</div>
+    <h2>Tira DX Light (Robobloq) con Hyperion</h2>
+    <p>Para las tiras USB que se manejan con el programa DX Light (por ejemplo, los kits MIWATT para monitor). Hyperion no las reconoce, así que un pequeño programa hace de puente. Incluye el paquete del puente, que puede manejar dos tiras a la vez.</p>
+    <div class="acciones">
+      <a class="principal" href="hyperion.html">Abrir la guía</a>
+      <a href="Guia-Hyperion-DX-Light.pdf">PDF</a>
+      <a href="hyperion-robobloq.zip" download>Paquete del puente (zip, unos 61 KB)</a>
+    </div>
+  </section>
+
+  <section class="guia">
+    <div class="etiqueta">Tira WLED</div>
+    <h2>Tira WLED con GLEDOPTO GL-C-616WL o SP803E</h2>
+    <p>Tira WS2812B de 5 m con un controlador WLED, por cable de red o por wifi, como segunda luz en Hyperion. Arriba de la guía eliges tu controlador y te enseña solo sus pasos.</p>
+    <div class="acciones">
+      <a class="principal" href="wled.html">Abrir la guía</a>
+      <a href="Guia-WLED-GLEDOPTO.pdf">PDF para el GLEDOPTO</a>
+      <a href="Guia-WLED-SP803E.pdf">PDF para el SP803E</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>Las casillas y los datos que rellenes en las guías se guardan solo en tu navegador.</p>
+  <p>Actualizado el 13/11/2026.</p>
+</footer>
+</div>
+</body>
+</html>
